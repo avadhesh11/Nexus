@@ -1,25 +1,40 @@
 import axios from "axios";
 
 const api = axios.create({
-  baseURL: process.env.NEXT_PUBLIC_API_URL || "http://localhost:8000/api",
-  headers: { "Content-Type": "application/json" },
-});
+  baseURL:
+    process.env.NEXT_PUBLIC_API_URL ||
+    "http://localhost:8000/api",
 
-api.interceptors.request.use((config) => {
-  if (typeof window !== "undefined") {
-    const token = localStorage.getItem("nexus_token");
-    if (token) config.headers.Authorization = "Bearer " + token;
-  }
-  return config;
-});
+  headers: {
+    "Content-Type": "application/json",
+  },
 
+  withCredentials: true,
+});
 api.interceptors.response.use(
   (res) => res,
-  (err) => {
-    if (err.response?.status === 401 && typeof window !== "undefined") {
-      localStorage.removeItem("nexus_token");
-      window.location.href = "/login";
+
+  async (err) => {
+    const originalRequest = err.config;
+
+    // Prevent retry loop
+    if (
+      err.response?.status === 401 &&
+      !originalRequest._retry &&
+      !originalRequest.url.includes("/auth/refresh")
+    ) {
+      originalRequest._retry = true;
+
+      try {
+        await api.post("/auth/refresh");
+
+        return api(originalRequest);
+
+      } catch (refreshError) {
+        window.location.href = "/login";
+      }
     }
+
     return Promise.reject(err);
   }
 );

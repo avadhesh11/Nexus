@@ -22,29 +22,25 @@ const NAV = [
 export default function DashboardLayout({ children }: { children: React.ReactNode }) {
   const router = useRouter();
   const pathname = usePathname();
-  const { user, token, logout, setAuth } = useAuthStore();
+  const { user, setUser,logout } = useAuthStore();
   const { currentWorkspace, setCurrentWorkspace, setWorkspaces } = useWorkspaceStore();
   const [loading, setLoading] = useState(true);
   const [copied, setCopied] = useState(false);
   const [showWsMenu, setShowWsMenu] = useState(false);
   const [workspaces, setWsList] = useState<Workspace[]>([]);
-
+  const [code,setCode]=useState("");
+  const [showCreateWs, setShowCreateWs] = useState(false);
+const [showJoinWs, setShowJoinWs] = useState(false);
+const [newWorkspaceName, setNewWorkspaceName] = useState("");
   useEffect(() => {
-    const storedToken = typeof window !== "undefined"
-      ? localStorage.getItem("nexus_token")
-      : null;
-
-    if (!storedToken) {
-      router.push("/login");
-      return;
-    }
+ 
 
     const init = async () => {
       try {
         // Restore user if missing from store (e.g. after refresh)
         if (!user) {
           const { data: me } = await api.get("/auth/me");
-          setAuth(storedToken, me);
+          setUser(me);
         }
 
         // Fetch workspaces
@@ -60,7 +56,7 @@ export default function DashboardLayout({ children }: { children: React.ReactNod
         const error = err as { response?: { status?: number } };
         // ONLY redirect on 401 — not on network errors or 500s
         if (error?.response?.status === 401) {
-          logout();
+        logout();
           router.push("/login");
         }
       } finally {
@@ -69,7 +65,7 @@ export default function DashboardLayout({ children }: { children: React.ReactNod
     };
 
     init();
-  }, [token]);
+  }, []);
 
   const copyInvite = () => {
     if (currentWorkspace) {
@@ -78,6 +74,59 @@ export default function DashboardLayout({ children }: { children: React.ReactNod
       setTimeout(() => setCopied(false), 2000);
     }
   };
+  const createWorkspace = async () => {
+  try {
+    if (!newWorkspaceName.trim()) return;
+
+    const { data } = await api.post("/workspaces/", {
+      name: newWorkspaceName,
+    });
+
+    const updated = [...workspaces, data];
+
+    setWsList(updated);
+    setWorkspaces(updated);
+    setCurrentWorkspace(data);
+
+    setNewWorkspaceName("");
+    setShowCreateWs(false);
+    setShowWsMenu(false);
+
+  } catch (error) {
+    console.log(error);
+  }
+};
+  const Join=async()=>{
+    try {
+       if (!code.trim()) {
+      console.log("Invalid code");
+      return;
+    }
+     
+        const { data } = await api.post(`/workspaces/join/${code}`);
+
+    console.log(data);
+
+    // update workspace list
+    const updatedWorkspaces = [...workspaces, data];
+
+    setWsList(updatedWorkspaces);
+    setWorkspaces(updatedWorkspaces);
+
+    // set joined workspace as current
+    setCurrentWorkspace(data);
+
+    // clear input
+    setCode("");
+
+      
+      
+    } catch (error:any) {
+       console.log(
+      error?.response?.data?.message || "Failed to join workspace"
+    );
+    }
+  }
 
   const handleLogout = () => {
     logout();
@@ -102,6 +151,29 @@ export default function DashboardLayout({ children }: { children: React.ReactNod
         setWsList([ws]);
         setWorkspaces([ws]);
       }} />
+      <div className="w-full max-w-sm mt-2">
+  <p className="text-[#5a5a7a] text-sm mb-2 text-center">
+    OR Join an existing workspace
+  </p>
+
+  <div className="flex gap-2">
+    <input
+      className="nexus-input flex-1 uppercase tracking-widest text-center"
+      value={code}
+      onChange={(e) => setCode(e.target.value)}
+      placeholder="6A45812"
+      onKeyDown={(e) => e.key === "Enter" && Join()}
+    />
+
+    <button
+      className="nexus-btn-primary min-w-[90px]"
+      onClick={Join}
+      disabled={!code.trim()}
+    >
+      Join
+    </button>
+  </div>
+</div>
       <button onClick={handleLogout} className="text-xs text-[#5a5a7a] hover:text-[#ff6b6b] mt-4 transition-colors">
         Sign out
       </button>
@@ -141,14 +213,69 @@ export default function DashboardLayout({ children }: { children: React.ReactNod
                   {ws.id === currentWorkspace.id && <Check className="w-3 h-3 text-accent" />}
                 </button>
               ))}
-              <div className="h-px bg-[#1e1e2e]" />
-              <button
-                onClick={() => setShowWsMenu(false)}
-                className="w-full flex items-center gap-2 px-3 py-2 text-xs text-[#5a5a7a] hover:bg-surface2 transition-colors"
-              >
-                <Plus className="w-3 h-3" /> New workspace
-              </button>
-            </div>
+          <div className="h-px bg-[#1e1e2e]" />
+
+<button
+  onClick={() => {
+    setShowCreateWs(!showCreateWs);
+    setShowJoinWs(false);
+  }}
+  className="w-full flex items-center gap-2 px-3 py-2 text-xs text-[#5a5a7a] hover:bg-surface2 transition-colors"
+>
+  <Plus className="w-3 h-3" />
+  Create New Workspace
+</button>
+
+{showCreateWs && (
+  <div className="p-2 border-t border-[#1e1e2e] flex gap-2">
+    <input
+      className="nexus-input flex-1 text-xs"
+      placeholder="Workspace name"
+      value={newWorkspaceName}
+      onChange={(e) => setNewWorkspaceName(e.target.value)}
+      onKeyDown={(e) => e.key === "Enter" && createWorkspace()}
+    />
+
+    <button
+      className="nexus-btn-primary text-xs px-3"
+      onClick={createWorkspace}
+    >
+      Create
+    </button>
+  </div>
+)}
+
+<button
+  onClick={() => {
+    setShowJoinWs(!showJoinWs);
+    setShowCreateWs(false);
+  }}
+  className="w-full flex items-center gap-2 px-3 py-2 text-xs text-[#5a5a7a] hover:bg-surface2 transition-colors"
+>
+  <Plus className="w-3 h-3" />
+  Join Workspace
+</button>
+
+{showJoinWs && (
+  <div className="p-2 border-t border-[#1e1e2e] flex gap-2">
+    <input
+      className="nexus-input flex-1 text-xs uppercase tracking-widest"
+      placeholder="Invite code"
+      value={code}
+      onChange={(e) => setCode(e.target.value)}
+      onKeyDown={(e) => e.key === "Enter" && Join()}
+    />
+
+    <button
+      className="nexus-btn-primary text-xs px-3"
+      onClick={Join}
+    >
+      Join
+    </button>
+  </div>
+)}
+        
+        </div>
           )}
         </div>
 

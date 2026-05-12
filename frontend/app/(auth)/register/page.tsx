@@ -8,29 +8,54 @@ import { Spinner } from "@/components/app/Spinner";
 
 export default function RegisterPage() {
   const router = useRouter();
-  const setAuth = useAuthStore((s) => s.setAuth);
+const setUser = useAuthStore((s) => s.setUser);
   const [email, setEmail] = useState("");
   const [password, setPassword] = useState("");
   const [error, setError] = useState("");
   const [loading, setLoading] = useState(false);
 
-  const handleSubmit = async (e: React.FormEvent) => {
-    e.preventDefault();
-    setLoading(true);
-    setError("");
-    try {
-      const { data } = await api.post("/auth/register", { email, password });
-      const me = await api.get("/auth/me", { headers: { Authorization: "Bearer " + data.access_token } });
-      setAuth(data.access_token, me.data);
-      router.push("/dashboard");
-    } catch (err: unknown) {
-      const error = err as { response?: { data?: { detail?: string } } };
-      setError(error.response?.data?.detail || "Registration failed");
-    } finally {
-      setLoading(false);
-    }
-  };
+  const handleSubmit = async (
+  e: React.FormEvent
+) => {
+  e.preventDefault();
 
+  setLoading(true);
+  setError("");
+
+  try {
+    // Backend sets cookies
+    await api.post("/auth/register", {
+      email,
+      password,
+    });
+
+    // Fetch logged in user
+    const { data: me } = await api.get(
+      "/auth/me"
+    );
+
+    setUser(me);
+
+    router.push("/dashboard");
+
+  } catch (err: unknown) {
+    const error = err as {
+      response?: {
+        data?: {
+          detail?: string;
+        };
+      };
+    };
+
+    setError(
+      error.response?.data?.detail ||
+        "Registration failed"
+    );
+
+  } finally {
+    setLoading(false);
+  }
+};
   return (
     <div className="min-h-screen grid-bg flex items-center justify-center px-6">
       <div className="w-full max-w-sm animate-fade-up">

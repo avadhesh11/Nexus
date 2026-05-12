@@ -3,28 +3,53 @@ import { persist } from "zustand/middleware";
 import { User } from "@/types";
 
 interface AuthState {
-  token: string | null;
   user: User | null;
-  setAuth: (token: string, user: User) => void;
+
+  setUser: (user: User) => void;
+
   logout: () => void;
+
   isAuthenticated: () => boolean;
 }
 
 export const useAuthStore = create<AuthState>()(
   persist(
     (set, get) => ({
-      token: null,
       user: null,
-      setAuth: (token, user) => {
-        if (typeof window !== "undefined") localStorage.setItem("nexus_token", token);
-        set({ token, user });
+
+      setUser: (user) => {
+        set({ user });
       },
-      logout: () => {
-        if (typeof window !== "undefined") localStorage.removeItem("nexus_token");
-        set({ token: null, user: null });
+
+      logout: async () => {
+        try {
+          await fetch(
+            "http://localhost:8000/api/auth/logout",
+            {
+              method: "POST",
+              credentials: "include",
+            }
+          );
+        } catch (err) {
+          console.log(err);
+        }
+
+        localStorage.removeItem("nexus-workspace");
+
+        set({
+          user: null,
+        });
       },
-      isAuthenticated: () => !!get().token,
+
+      isAuthenticated: () => !!get().user,
     }),
-    { name: "nexus-auth", partialize: (state) => ({ token: state.token, user: state.user }) }
+
+    {
+      name: "nexus-auth",
+
+      partialize: (state) => ({
+        user: state.user,
+      }),
+    }
   )
 );
