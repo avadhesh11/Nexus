@@ -33,14 +33,26 @@ export default function AIPage() {
     setStreamText("");
 
     try {
+      // const response = await fetch(`${process.env.NEXT_PUBLIC_API_URL || "http://localhost:8000/api"}/ai/chat/stream`, {
+      //   method: "POST",
+      //   headers: {
+      //     "Content-Type": "application/json",
+      //     Authorization: "Bearer " + localStorage.getItem("nexus_token"),
+      //   },
+      //   body: JSON.stringify({ message: input, workspace_id: currentWorkspace?.id, history }),
+      // });
       const response = await fetch(`${process.env.NEXT_PUBLIC_API_URL || "http://localhost:8000/api"}/ai/chat/stream`, {
-        method: "POST",
-        headers: {
-          "Content-Type": "application/json",
-          Authorization: "Bearer " + localStorage.getItem("nexus_token"),
-        },
-        body: JSON.stringify({ message: input, workspace_id: currentWorkspace?.id, history }),
-      });
+  method: "POST",
+  credentials: "include",
+  headers: {
+    "Content-Type": "application/json",
+  },
+  body: JSON.stringify({
+    message: input,
+    workspace_id: currentWorkspace?.id,
+    history,
+  }),
+});
        console.log(response.body);
       const reader = response.body?.getReader();
       const decoder = new TextDecoder();
