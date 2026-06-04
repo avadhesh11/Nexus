@@ -297,3 +297,10 @@ def me(
         )
 
     return user
+
+
+@router.get("/debug")
+def debug(request: Request):
+    return {
+        "cookies": dict(request.cookies)
+    }
