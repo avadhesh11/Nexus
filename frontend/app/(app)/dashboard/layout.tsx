@@ -121,11 +121,19 @@ const [newWorkspaceName, setNewWorkspaceName] = useState("");
 
       
       
-    } catch (error:any) {
-       console.log(
-      error?.response?.data?.message || "Failed to join workspace"
-    );
-    }
+    } catch (error: unknown) {
+  const err = error as {
+    response?: {
+      data?: {
+        message?: string;
+      };
+    };
+  };
+
+  console.log(
+    err?.response?.data?.message || "Failed to join workspace"
+  );
+}
   }
 
   const handleLogout = () => {
