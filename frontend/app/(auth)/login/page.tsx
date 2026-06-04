@@ -34,7 +34,7 @@ export default function LoginPage() {
         email,
         password,
       });
-
+      await api.get("/auth/debug");
       // Fetch current user
       const { data: me } = await api.get(
         "/auth/me"
