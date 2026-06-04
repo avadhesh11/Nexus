@@ -145,8 +145,8 @@ Gemini answers using your actual workspace content
 ### 1. Clone the repository
 
 ```bash
-git clone https://github.com/yourusername/nexus-ai.git
-cd nexus-ai
+git clone https://github.com/avadhesh11/Nexus.git
+cd Nexus
 ```
 
 ### 2. Set up Supabase
