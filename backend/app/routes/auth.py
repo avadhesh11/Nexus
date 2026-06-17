@@ -26,7 +26,7 @@ REFRESH_TOKEN_EXPIRE_DAYS = 7
 SECRET = os.getenv("JWT_SECRET")
 ALGORITHM = os.getenv("JWT_ALGORITHM")
 
-
+PRODUCTION= os.getenv("PRODUCTION", "false").lower() in ("true", "1")
 
 
 def hash_password(password: str) -> str:
@@ -84,18 +84,18 @@ def set_auth_cookies(
         key="access_token",
         value=access_token,
         httponly=True,
-        secure=True,  
-        samesite="none",
-        max_age=60 * 15
+        secure=True if PRODUCTION==True else False, 
+        samesite="none" if PRODUCTION==True else "lax" ,
+        max_age=ACCESS_TOKEN_EXPIRE_MINUTES * 60
     )
 
     response.set_cookie(
         key="refresh_token",
         value=refresh_token,
         httponly=True,
-        secure=True,
-        samesite="none",
-        max_age=60 * 60 * 24 * 7
+        secure=True if PRODUCTION else False,
+        samesite="none" if PRODUCTION else "lax",
+        max_age=REFRESH_TOKEN_EXPIRE_DAYS *24*60* 60
     )
 
 

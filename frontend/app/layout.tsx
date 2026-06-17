@@ -1,8 +1,7 @@
 
 import type { Metadata } from "next";
-import "./globals.css";
 import { Providers } from "./providers";
-
+import "./globals.css";
 export const metadata: Metadata = {
   title: "Nexus AI — Unified Agentic Workspace",
   description: "Docs, chat, tasks, and AI memory — unified.",

@@ -1,4 +1,4 @@
-from ..supabase_client import supabase
+from ..utils.supabase_client import supabase
 from .embedder import get_embedding, get_query_embedding
  
 from .chunker import chunk_text

@@ -1,5 +1,4 @@
 "use client";
-
 import { useState, useRef, useEffect } from "react";
 import { useWorkspaceStore } from "@/store/workspaceStore";
 import { useAuthStore } from "@/store/authStore";
@@ -7,7 +6,7 @@ import { ChatMessage } from "@/types";
 import { Avatar } from "@/components/app/Avatar";
 import { Spinner } from "@/components/app/Spinner";
 import { Send, Sparkles, Database } from "lucide-react";
-
+import api from "@/lib/api";
 interface AIMessage { role: "user" | "model"; content: string; sources?: number; }
 
 export default function AIPage() {
@@ -22,70 +21,44 @@ export default function AIPage() {
   useEffect(() => {
     bottomRef.current?.scrollIntoView({ behavior: "smooth" });
   }, [messages, streamText]);
+const sendMessage = async () => {
+  if (!input.trim() || loading) return;
 
-  const sendMessage = async () => {
-    if (!input.trim() || loading) return;
-    const userMsg: AIMessage = { role: "user", content: input };
-    const history: ChatMessage[] = messages.map(m => ({ role: m.role, content: m.content }));
-    setMessages(prev => [...prev, userMsg]);
-    setInput("");
-    setLoading(true);
-    setStreamText("");
+  const userMsg: AIMessage = { role: "user", content: input };
+  const history: ChatMessage[] = messages.map(m => ({ role: m.role, content: m.content }));
+  setMessages(prev => [...prev, userMsg]);
+  setInput("");
+  setLoading(true);
 
-    try {
-      // const response = await fetch(`${process.env.NEXT_PUBLIC_API_URL || "http://localhost:8000/api"}/ai/chat/stream`, {
-      //   method: "POST",
-      //   headers: {
-      //     "Content-Type": "application/json",
-      //     Authorization: "Bearer " + localStorage.getItem("nexus_token"),
-      //   },
-      //   body: JSON.stringify({ message: input, workspace_id: currentWorkspace?.id, history }),
-      // });
-      const response = await fetch(`${process.env.NEXT_PUBLIC_API_URL || "http://localhost:8000/api"}/ai/chat/stream`, {
-  method: "POST",
-  credentials: "include",
-  headers: {
-    "Content-Type": "application/json",
-  },
-  body: JSON.stringify({
-    message: input,
-    workspace_id: currentWorkspace?.id,
-    history,
-  }),
-});
-       console.log(response.body);
-      const reader = response.body?.getReader();
-      const decoder = new TextDecoder();
-      let fullText = "";
-      let sourcesUsed = 0;
+  try {
+    const res = await api.post("/ai/chat", {
+      message: input,
+      workspace_id: currentWorkspace?.id,
+      history,
+    });
 
-      if (reader) {
-        while (true) {
-          const { done, value } = await reader.read();
-          if (done) break;
-          const chunk = decoder.decode(value);
-          const lines = chunk.split("\n");
-          for (const line of lines) {
-            if (line.startsWith("data: ")) {
-              try {
-                const data = JSON.parse(line.slice(6));
-                if (data.chunk) { fullText += data.chunk; setStreamText(fullText); }
-                if (data.done) { sourcesUsed = data.sources || 0; }
-              } catch {}
-            }
-          }
-        }
-      }
+    // Safely extract string from response
+const responseText = typeof res.data.response === "string"
+  ? res.data.response
+  : Array.isArray(res.data.response)
+    ? res.data.response.map((b: any) => b.text || b.content || "").join("")
+    : JSON.stringify(res.data.response);
 
-      setMessages(prev => [...prev, { role: "model", content: fullText, sources: sourcesUsed }]);
-      setStreamText("");
-    } catch {
-      setMessages(prev => [...prev, { role: "model", content: "Sorry, something went wrong. Please try again." }]);
-      setStreamText("");
-    } finally {
-      setLoading(false);
-    }
-  };
+setMessages(prev => [...prev, {
+  role: "model",
+  content: responseText,
+  sources: res.data.sources_used,
+  tools: res.data.tools_used,
+}]);
+  } catch {
+    setMessages(prev => [...prev, {
+      role: "model",
+      content: "Sorry, something went wrong. Please try again.",
+    }]);
+  } finally {
+    setLoading(false);
+  }
+};
 
   return (
     <div className="flex flex-col h-full">
@@ -96,7 +69,7 @@ export default function AIPage() {
         </div>
         <div>
           <div className="text-sm font-semibold">Nexus AI Assistant</div>
-          <div className="text-[10px] text-[#5a5a7a] font-mono">RAG-powered — knows your workspace</div>
+          <div className="text-[10px] text-[#5a5a7a] font-mono">It knows your workspace</div>
         </div>
       </div>
 
@@ -193,7 +166,7 @@ export default function AIPage() {
           </button>
         </div>
         <div className="text-[10px] text-[#3a3a5a] font-mono mt-2 max-w-3xl mx-auto">
-          AI responses are grounded in your workspace documents via RAG pipeline
+         AI can make mistakes , kindly verify all details once
         </div>
       </div>
     </div>

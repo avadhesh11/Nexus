@@ -28,7 +28,6 @@ class Workspace(Base):
     owner_id = Column(UUID(as_uuid=True), ForeignKey("users.id"), nullable=False)
     created_at = Column(DateTime, default=datetime.utcnow)
 
-    # relationships
     members = relationship("WorkspaceMember", back_populates="workspace")
     documents = relationship("Document", back_populates="workspace")
 
