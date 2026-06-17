@@ -4,6 +4,7 @@ import { useState } from "react";
 import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
 import api from "@/lib/api";
 import { useWorkspaceStore } from "@/store/workspaceStore";
+import { useAuthStore } from "@/store/authStore";
 import { Task } from "@/types";
 import { Spinner } from "@/components/app/Spinner";
 import { Plus, X } from "lucide-react";
@@ -16,7 +17,8 @@ const COLUMNS = [
 ] as const;
 
 function TaskCard({ task, onMove, onDelete }: { task: Task; onMove: (id: string, status: string) => void; onDelete: (id: string) => void }) {
- 
+
+
   const priClass = { low: "badge-low", medium: "badge-medium", high: "badge-high" }[task.priority] || "badge-low";
   return (
     <div className="group p-3 border border-[#1e1e2e] rounded-lg bg-bg hover:border-[#2a2a3e] transition-all">
@@ -50,6 +52,7 @@ function TaskCard({ task, onMove, onDelete }: { task: Task; onMove: (id: string,
 }
 
 export default function TasksPage() {
+  const { user } = useAuthStore();
   const qc = useQueryClient();
   const { currentWorkspace } = useWorkspaceStore();
   const [showModal, setShowModal] = useState(false);
@@ -85,9 +88,11 @@ export default function TasksPage() {
           <div className="text-[10px] text-[#5a5a7a] font-mono tracking-widest mb-1">TASK BOARD</div>
           <h2 className="font-display font-bold text-xl">{tasks.length} Tasks</h2>
         </div>
-        <button className="nexus-btn-primary text-sm" onClick={() => setShowModal(true)}>
-          <Plus className="w-3.5 h-3.5" /> New task
-        </button>
+        {user?.id === currentWorkspace?.owner_id && (
+          <button className="nexus-btn-primary text-sm" onClick={() => setShowModal(true)}>
+            <Plus className="w-3.5 h-3.5" /> New task
+          </button>
+        )}
       </div>
 
       <div className="grid grid-cols-3 gap-4 flex-1 min-h-0">

@@ -43,27 +43,29 @@ export default function DocumentsPage() {
     onSuccess: () => qc.invalidateQueries({ queryKey: ["documents"] }),
   });
   const ws=currentWorkspace;
-const uploadTxt = async (e: React.ChangeEvent<HTMLInputElement>) => {
-  if (!ws) return;
+  const handleFileUpload = async (e: React.ChangeEvent<HTMLInputElement>) => {
+    if (!ws) return;
 
-  const file = e.target.files?.[0];
-  if (!file) return;
+    const file = e.target.files?.[0];
+    if (!file) return;
 
-  const text = await file.text();
-//  console.log("ws.id:", ws?.id); 
-  try {
-    const { data } = await api.post("/documents/", {
-      title: file.name,
-      content: text,
-      workspace_id: ws.id,
-    });
-     console.log(data.id);
+    const formData = new FormData();
+    formData.append("file", file);
+    formData.append("workspace_id", ws.id);
 
-     router.push(`/dashboard/documents/${data.id}`);
-  } catch (err) {
-    console.error(err);
-  }
-};
+    try {
+      const { data } = await api.post("/documents/upload", formData, {
+        headers: {
+          "Content-Type": "multipart/form-data",
+        },
+      });
+
+      qc.invalidateQueries({ queryKey: ["documents"] });
+      router.push(`/dashboard/documents/${data.id}`);
+    } catch (err) {
+      console.error(err);
+    }
+  };
   if (isLoading) return <div className="flex items-center justify-center h-64"><Spinner className="w-5 h-5" /></div>;
 
   return (
@@ -77,12 +79,12 @@ const uploadTxt = async (e: React.ChangeEvent<HTMLInputElement>) => {
           <Plus className="w-3.5 h-3.5" />Write New document/content
         </button>
         OR
-         <label className="nexus-btn-primary text-sm">
-  Upload TXT
+         <label className="nexus-btn-primary text-sm cursor-pointer">
+  Upload File
   <input
     type="file"
-    accept=".txt"
-    onChange={uploadTxt}
+    accept=".txt,.pdf,.docx,.csv,.xlsx,.xls,.md"
+    onChange={handleFileUpload}
     className="hidden"
   />
 </label>

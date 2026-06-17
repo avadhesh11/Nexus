@@ -1,6 +1,7 @@
 import { create } from "zustand";
 import { persist } from "zustand/middleware";
 import { User } from "@/types";
+import api from "@/lib/api";
 
 interface AuthState {
   user: User | null;
@@ -21,21 +22,14 @@ export const useAuthStore = create<AuthState>()(
         set({ user });
       },
 
+
       logout: async () => {
         try {
-          await fetch(
-            "http://localhost:8000/api/auth/logout",
-            {
-              method: "POST",
-              credentials: "include",
-            }
-          );
+          await api.post("/auth/logout");
+          localStorage.removeItem("nexus-workspace");
         } catch (err) {
           console.log(err);
         }
-
-        localStorage.removeItem("nexus-workspace");
-
         set({
           user: null,
         });
