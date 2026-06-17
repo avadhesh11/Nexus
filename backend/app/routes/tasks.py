@@ -3,7 +3,7 @@ from sqlalchemy.orm import Session
 from datetime import datetime
 from uuid import UUID
 from ..database import get_db
-from ..models import User, Task, WorkspaceMember, TaskStatus, TaskPriority
+from ..models import User, Task, WorkspaceMember, TaskStatus, TaskPriority,RoleEnum
 from ..schemas import TaskCreate, TaskUpdate, TaskOut
 from ..dependencies import get_current_user
 
@@ -37,6 +37,13 @@ def create_task(
                 status_code=400,
                 detail="Assigned user is not a workspace member"
             )
+        member = check_workspace_member(body.workspace_id, str(current_user.id), db)
+
+        if member.role != RoleEnum.admin:
+            raise HTTPException(
+                status_code=403,
+                detail="Only workspace admins can create tasks"
+            )
         
     task = Task(
         title=body.title,
@@ -64,7 +71,7 @@ def fetch_tasks(
     )
     if status:
         tasks=tasks.filter(Task.status==status)
-    print(tasks)
+
     return tasks
 
 @router.patch("/{task_id}",response_model=TaskOut)

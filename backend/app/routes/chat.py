@@ -5,7 +5,7 @@ from ..database import get_db
 from ..models import User, WorkspaceMember
 from ..schemas import MessageOut,MessageCreate
 from ..dependencies import get_current_user
-from ..supabase_client import supabase  
+from ..utils.supabase_client import supabase  
 
 router = APIRouter(prefix="/chat", tags=["chat"])
 

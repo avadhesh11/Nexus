@@ -1,7 +1,14 @@
 "use client";
 import Link from "next/link";
-
+import axios from "axios";
+import { useState, useRef, useEffect } from "react";
 export default function LandingPage() {
+ useEffect(()=>{
+ const getHealth=async()=>{
+await axios.get(`${process.env.NEXT_PUBLIC_API_URL}/health`);
+ }
+ getHealth();
+ },[]);
   return (
     <div className="min-h-screen grid-bg flex flex-col">
       {/* Nav */}
