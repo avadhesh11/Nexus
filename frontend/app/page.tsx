@@ -1,14 +1,56 @@
 "use client";
 import Link from "next/link";
 import axios from "axios";
-import { useState, useRef, useEffect } from "react";
+import { useState, useEffect } from "react";
+import { useRouter } from "next/navigation";
+import api from "@/lib/api";
+import { useAuthStore } from "@/store/authStore";
+import { Spinner } from "@/components/app/Spinner";
+
 export default function LandingPage() {
- useEffect(()=>{
- const getHealth=async()=>{
-await axios.get(`${process.env.NEXT_PUBLIC_API_URL}/health`);
- }
- getHealth();
- },[]);
+  const { user, setUser, logout } = useAuthStore();
+  const router = useRouter();
+  const [checkingAuth, setCheckingAuth] = useState(true);
+
+  useEffect(() => {
+    const getHealth = async () => {
+      try {
+        await axios.get(`${process.env.NEXT_PUBLIC_API_URL}/health`);
+      } catch {
+        // Ignored
+      }
+    };
+    getHealth();
+  }, []);
+
+  useEffect(() => {
+    const checkAuth = async () => {
+      if (!user) {
+        setCheckingAuth(false);
+        return;
+      }
+
+      try {
+        const { data: me } = await api.get("/auth/me");
+        setUser(me);
+        router.push("/dashboard");
+      } catch {
+        logout();
+        setCheckingAuth(false);
+      }
+    };
+
+    checkAuth();
+  }, [user, setUser, logout, router]);
+
+  if (checkingAuth && user) {
+    return (
+      <div className="min-h-screen bg-bg flex items-center justify-center">
+        <Spinner className="w-6 h-6" />
+      </div>
+    );
+  }
+
   return (
     <div className="min-h-screen grid-bg flex flex-col">
       {/* Nav */}

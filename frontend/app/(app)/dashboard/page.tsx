@@ -31,7 +31,7 @@ export default function DashboardPage() {
   });
 
   const { data: messages = [] } = useQuery<Message[]>({
-    queryKey: ["messages", currentWorkspace?.id],
+    queryKey: ["messages", currentWorkspace?.id, { limit: 5 }],
     queryFn: () => api.get(`/chat/${currentWorkspace?.id}/messages?limit=5`).then(r => r.data),
     enabled: !!currentWorkspace?.id,
   });

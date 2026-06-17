@@ -31,7 +31,14 @@ api.interceptors.response.use(
         return api(originalRequest);
 
       } catch (refreshError) {
-        window.location.href = "/login";
+        const publicPaths = ["/", "/login", "/register"];
+        if (
+          typeof window !== "undefined" &&
+          !publicPaths.includes(window.location.pathname)
+        ) {
+          window.location.href = "/login";
+        }
+        return Promise.reject(refreshError);
       }
     }
 

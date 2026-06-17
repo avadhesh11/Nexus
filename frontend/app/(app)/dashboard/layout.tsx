@@ -65,6 +65,7 @@ const [newWorkspaceName, setNewWorkspaceName] = useState("");
     };
 
     init();
+    // eslint-disable-next-line react-hooks/exhaustive-deps
   }, []);
 
   const copyInvite = () => {

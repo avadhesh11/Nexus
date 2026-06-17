@@ -25,7 +25,7 @@ export default function ChatPage() {
 
   // Fetch initial messages
   const { data: initialMessages, isLoading } = useQuery<Message[]>({
-    queryKey: ["messages", currentWorkspace?.id],
+    queryKey: ["messages", currentWorkspace?.id, { limit: 100 }],
     queryFn: async () => {
       const res = await api.get(
         `/chat/${currentWorkspace?.id}/messages?limit=100`

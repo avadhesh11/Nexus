@@ -1,6 +1,6 @@
 "use client";
 
-import { useState } from "react";
+import { useState, useEffect } from "react";
 import { useRouter } from "next/navigation";
 import Link from "next/link";
 
@@ -12,13 +12,29 @@ import { Spinner } from "@/components/app/Spinner";
 export default function LoginPage() {
   const router = useRouter();
 
-  const setUser = useAuthStore((s) => s.setUser);
+  const { setUser, logout } = useAuthStore();
 
   const [email, setEmail] = useState("");
   const [password, setPassword] = useState("");
 
   const [error, setError] = useState("");
   const [loading, setLoading] = useState(false);
+  const [checkingAuth, setCheckingAuth] = useState(true);
+
+  useEffect(() => {
+    const checkAuth = async () => {
+      try {
+        const { data: me } = await api.get("/auth/me");
+        setUser(me);
+        router.push("/dashboard");
+      } catch {
+        logout();
+        setCheckingAuth(false);
+      }
+    };
+
+    checkAuth();
+  }, [setUser, logout, router]);
 
   const handleSubmit = async (
     e: React.FormEvent
@@ -64,6 +80,14 @@ export default function LoginPage() {
       setLoading(false);
     }
   };
+
+  if (checkingAuth) {
+    return (
+      <div className="min-h-screen bg-bg flex items-center justify-center">
+        <Spinner className="w-6 h-6" />
+      </div>
+    );
+  }
 
   return (
     <div className="min-h-screen grid-bg flex items-center justify-center px-6">

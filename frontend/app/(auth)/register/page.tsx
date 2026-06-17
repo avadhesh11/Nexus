@@ -1,5 +1,5 @@
 "use client";
-import { useState } from "react";
+import { useState, useEffect } from "react";
 import { useRouter } from "next/navigation";
 import Link from "next/link";
 import api from "@/lib/api";
@@ -8,54 +8,78 @@ import { Spinner } from "@/components/app/Spinner";
 
 export default function RegisterPage() {
   const router = useRouter();
-const setUser = useAuthStore((s) => s.setUser);
+  const { setUser, logout } = useAuthStore();
   const [email, setEmail] = useState("");
   const [password, setPassword] = useState("");
   const [error, setError] = useState("");
   const [loading, setLoading] = useState(false);
+  const [checkingAuth, setCheckingAuth] = useState(true);
 
-  const handleSubmit = async (
-  e: React.FormEvent
-) => {
-  e.preventDefault();
-
-  setLoading(true);
-  setError("");
-
-  try {
-    // Backend sets cookies
-    await api.post("/auth/register", {
-      email,
-      password,
-    });
-
-    // Fetch logged in user
-    const { data: me } = await api.get(
-      "/auth/me"
-    );
-
-    setUser(me);
-
-    router.push("/dashboard");
-
-  } catch (err: unknown) {
-    const error = err as {
-      response?: {
-        data?: {
-          detail?: string;
-        };
-      };
+  useEffect(() => {
+    const checkAuth = async () => {
+      try {
+        const { data: me } = await api.get("/auth/me");
+        setUser(me);
+        router.push("/dashboard");
+      } catch {
+        logout();
+        setCheckingAuth(false);
+      }
     };
 
-    setError(
-      error.response?.data?.detail ||
-        "Registration failed"
-    );
+    checkAuth();
+  }, [setUser, logout, router]);
 
-  } finally {
-    setLoading(false);
+  const handleSubmit = async (
+    e: React.FormEvent
+  ) => {
+    e.preventDefault();
+
+    setLoading(true);
+    setError("");
+
+    try {
+      // Backend sets cookies
+      await api.post("/auth/register", {
+        email,
+        password,
+      });
+
+      // Fetch logged in user
+      const { data: me } = await api.get(
+        "/auth/me"
+      );
+
+      setUser(me);
+
+      router.push("/dashboard");
+
+    } catch (err: unknown) {
+      const error = err as {
+        response?: {
+          data?: {
+            detail?: string;
+          };
+        };
+      };
+
+      setError(
+        error.response?.data?.detail ||
+          "Registration failed"
+      );
+
+    } finally {
+      setLoading(false);
+    }
+  };
+
+  if (checkingAuth) {
+    return (
+      <div className="min-h-screen bg-bg flex items-center justify-center">
+        <Spinner className="w-6 h-6" />
+      </div>
+    );
   }
-};
   return (
     <div className="min-h-screen grid-bg flex items-center justify-center px-6">
       <div className="w-full max-w-sm animate-fade-up">

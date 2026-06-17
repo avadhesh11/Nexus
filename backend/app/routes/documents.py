@@ -1,4 +1,4 @@
-from fastapi import APIRouter, Depends, HTTPException, status,Query
+from fastapi import APIRouter, Depends, HTTPException, status, Query, UploadFile, File, Form
 from sqlalchemy.orm import Session
 import uuid
 from datetime import datetime,timedelta,UTC
@@ -7,6 +7,7 @@ from ..models import User,Document,WorkspaceMember
 from ..schemas import DocumentCreate,DocumentOut,DocumentUpdate
 from ..dependencies import get_current_user
 from ..rag.vector_store import store_embeddings
+from ..utils.document_parser import extract_text_from_file
 from uuid import UUID
 router=APIRouter(prefix="/documents",tags=["documents"])
 
@@ -46,6 +47,40 @@ def create_document(
             content=f"{body.title}\n\n{body.content}"  # include title for context
         )
 
+    return doc
+
+@router.post("/upload", response_model=DocumentOut, status_code=201)
+def upload_document(
+    workspace_id: str = Form(...),
+    file: UploadFile = File(...),
+    db: Session = Depends(get_db),
+    current_user: User = Depends(get_current_user)
+):
+    check_member(workspace_id, str(current_user.id), db)
+    
+    try:
+        extracted_text = extract_text_from_file(file)
+    except Exception as e:
+        raise HTTPException(status_code=400, detail=f"Failed to parse document: {str(e)}")
+        
+    doc = Document(
+        title=file.filename,
+        content=extracted_text,
+        workspace_id=workspace_id,
+        created_by=current_user.id
+    )
+    db.add(doc)
+    db.commit()
+    db.refresh(doc)
+    
+    if extracted_text.strip():
+        store_embeddings(
+            workspace_id=str(workspace_id),
+            source_type="document",
+            source_id=str(doc.id),
+            content=f"{file.filename}\n\n{extracted_text}"
+        )
+        
     return doc
 
 @router.get("/",response_model=list[DocumentOut])
