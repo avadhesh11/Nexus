@@ -249,8 +249,21 @@ def refresh_token(
 
 @router.post("/logout")
 def logout(response: Response):
-    response.delete_cookie("access_token")
-    response.delete_cookie("refresh_token")
+    secure = True if PRODUCTION else False
+    samesite = "none" if PRODUCTION else "lax"
+
+    response.delete_cookie(
+        "access_token",
+        secure=secure,
+        samesite=samesite,
+        httponly=True
+    )
+    response.delete_cookie(
+        "refresh_token",
+        secure=secure,
+        samesite=samesite,
+        httponly=True
+    )
 
     return {
         "message": "Logged out"
