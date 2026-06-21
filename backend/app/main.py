@@ -25,7 +25,7 @@ app.include_router(chat.router, prefix="/api")
 app.include_router(tasks.router, prefix="/api")
 app.include_router(ai.router, prefix="/api")
 
-@app.get("/health")
+@app.get("/api/health")
 def health():
     return {
         "status": "ok",
