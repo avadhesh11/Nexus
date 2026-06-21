@@ -25,39 +25,40 @@ export default function StatusPage() {
   const checkHealth = async () => {
     setLoading(true);
     const start = Date.now();
-    const apiUrl = process.env.NEXT_PUBLIC_API_URL || "http://localhost:8000";
+    const rawUrl = process.env.NEXT_PUBLIC_API_URL || "http://localhost:8000";
+    const baseUrl = rawUrl.replace(/\/api$/, "");
     
     try {
       // Fetch health endpoint
-      const res = await axios.get(`${apiUrl}/health`, { timeout: 8000 });
+      const res = await axios.get(`${baseUrl}/health`, { timeout: 8000 });
       const duration = Date.now() - start;
       setPing(duration);
 
-      const servicesData = res.data?.services;
+      const isOk = res.data?.status === "ok";
       
       setServices([
         { name: "Frontend Server", status: "operational", description: "Vercel edge hosting & Next.js rendering", icon: Server },
         { 
           name: "Backend API", 
-          status: servicesData?.api === "operational" ? "operational" : "degraded", 
+          status: isOk ? "operational" : "offline", 
           description: "FastAPI request handlers & JWT Auth security", 
           icon: Activity 
         },
         { 
           name: "Database (Supabase)", 
-          status: servicesData?.database === "operational" ? "operational" : "degraded", 
+          status: isOk ? "operational" : "offline", 
           description: "PostgreSQL core data engine & pgvector store", 
           icon: Database 
         },
         { 
           name: "Agent Engine", 
-          status: servicesData?.agent_engine === "operational" ? "operational" : "degraded", 
+          status: isOk ? "operational" : "offline", 
           description: "LangGraph agent & Gemini orchestration service", 
           icon: Brain 
         },
       ]);
       
-      setSystemStatus("all_good");
+      setSystemStatus(isOk ? "all_good" : "issues");
     } catch {
       setPing(null);
       setSystemStatus("offline");
