@@ -17,8 +17,9 @@ export default function LandingPage() {
   useEffect(() => {
     const checkStatus = async () => {
       try {
-        const apiUrl = process.env.NEXT_PUBLIC_API_URL || "http://localhost:8000/api";
-        await axios.get(`${apiUrl}/health`, { timeout: 5000 });
+        const rawUrl = process.env.NEXT_PUBLIC_API_URL || "http://localhost:8000/api";
+        const baseUrl = rawUrl.replace(/\/api$/, "");
+        await axios.get(`${baseUrl}/health`, { timeout: 5000 });
         setApiStatus("online");
       } catch {
         setApiStatus("offline");
@@ -29,7 +30,8 @@ export default function LandingPage() {
 
   useEffect(() => {
     const checkAuth = async () => {
-      if (!user) {
+      const currentUser = useAuthStore.getState().user;
+      if (!currentUser) {
         setCheckingAuth(false);
         return;
       }
@@ -37,15 +39,15 @@ export default function LandingPage() {
       try {
         const { data: me } = await api.get("/auth/me");
         setUser(me);
-        router.push("/dashboard");
       } catch {
         logout();
+      } finally {
         setCheckingAuth(false);
       }
     };
 
     checkAuth();
-  }, [user, setUser, logout, router]);
+  }, [setUser, logout]);
 
   if (checkingAuth && user) {
     return (
