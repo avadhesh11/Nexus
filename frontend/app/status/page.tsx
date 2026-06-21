@@ -1,5 +1,5 @@
 "use client";
-import { useState, useEffect } from "react";
+import React, { useState, useEffect } from "react";
 import Link from "next/link";
 import { ArrowLeft, CheckCircle, AlertTriangle, Activity, Server, Database, Brain, RefreshCw } from "lucide-react";
 import axios from "axios";
@@ -8,7 +8,7 @@ interface ServiceStatus {
   name: string;
   status: "operational" | "degraded" | "offline" |"checking";
   description: string;
-  icon: any;
+  icon: React.ComponentType<{ className?: string }>;
 }
 
 export default function StatusPage() {
@@ -58,7 +58,7 @@ export default function StatusPage() {
       ]);
       
       setSystemStatus("all_good");
-    } catch (error) {
+    } catch {
       setPing(null);
       setSystemStatus("offline");
       setServices([

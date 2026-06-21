@@ -6,7 +6,7 @@ import { useRouter } from "next/navigation";
 import api from "@/lib/api";
 import { useAuthStore } from "@/store/authStore";
 import { Spinner } from "@/components/app/Spinner";
-import { Sparkles, Terminal, Activity, Shield, Layers, ArrowRight, HelpCircle, Database, Check } from "lucide-react";
+import { Sparkles, Terminal, Activity, ArrowRight, Database } from "lucide-react";
 
 export default function LandingPage() {
   const { user, setUser, logout } = useAuthStore();
