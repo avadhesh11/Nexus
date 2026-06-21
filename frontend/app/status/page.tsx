@@ -27,6 +27,8 @@ export default function StatusPage() {
     const start = Date.now();
     const rawUrl = process.env.NEXT_PUBLIC_API_URL || "http://localhost:8000";
     const baseUrl = rawUrl.replace(/\/api$/, "");
+    console.log(baseUrl);
+    
     
     try {
       // Fetch health endpoint
@@ -35,6 +37,9 @@ export default function StatusPage() {
       setPing(duration);
 
       const isOk = res.data?.status === "ok";
+      console.log(isOk);
+      
+
       
       setServices([
         { name: "Frontend Server", status: "operational", description: "Vercel edge hosting & Next.js rendering", icon: Server },
