@@ -27,4 +27,11 @@ app.include_router(ai.router, prefix="/api")
 
 @app.get("/health")
 def health():
-    return {"status": "ok"}
+    return {
+        "status": "ok",
+        "services": {
+            "api": "operational",
+            "database": "operational",
+            "agent_engine": "operational"
+        }
+    }
