@@ -3,7 +3,7 @@ import React, { useState, useEffect } from "react";
 import Link from "next/link";
 import { ArrowLeft, CheckCircle, AlertTriangle, Activity, Server, Database, Brain, RefreshCw } from "lucide-react";
 import axios from "axios";
-
+import api from "@/lib/api";
 interface ServiceStatus {
   name: string;
   status: "operational" | "degraded" | "offline" |"checking";
@@ -25,14 +25,12 @@ export default function StatusPage() {
   const checkHealth = async () => {
     setLoading(true);
     const start = Date.now();
-    const rawUrl = process.env.NEXT_PUBLIC_API_URL || "http://localhost:8000";
-    const baseUrl = rawUrl.replace(/\/api$/, "");
-    console.log(baseUrl);
-    
+    const baseUrl = process.env.NEXT_PUBLIC_API_URL || "http://localhost:8000";
+
     
     try {
       // Fetch health endpoint
-      const res = await axios.get(`${baseUrl}/health`, { timeout: 8000 });
+      const res = await api.get(`${baseUrl}/health`);
       const duration = Date.now() - start;
       setPing(duration);
 
