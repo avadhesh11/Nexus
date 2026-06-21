@@ -39,4 +39,4 @@ Open http://localhost:3000
 - `/dashboard/documents/[id]` — Document editor
 - `/dashboard/chat` — Realtime team chat
 - `/dashboard/tasks` — Kanban task board
-- `/dashboard/ai` — AI assistant with streaming RAG
+- `/dashboard/ai` — Agentic AI workspace assistant
