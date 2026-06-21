@@ -1,5 +1,5 @@
 # Nexus
-# Nexus AI — The Unified Agentic Workspace
+# Nexus — The Unified Agentic Workspace
 
 > Docs, chat, tasks, and AI memory — unified. Nexus AI treats AI as a first-class teammate, not a chatbot on the side.
 
@@ -13,9 +13,9 @@
 
 ---
 
-## What is Nexus AI?
+## What is Nexus?
 
-Nexus AI is a next-generation collaborative workspace platform that unifies team communication, documentation, project management, and intelligent AI automation into a single ecosystem.
+Nexus is a next-generation collaborative workspace platform that unifies team communication, documentation, project management, and intelligent AI automation into a single ecosystem.
 
 Unlike traditional tools where AI is just a chatbot panel, Nexus AI uses an **Agentic RAG (Retrieval-Augmented Generation)** architecture — the AI has memory of every document, task, and message in your workspace and can answer questions using your team's actual content.
 
@@ -32,7 +32,7 @@ Unlike traditional tools where AI is just a chatbot panel, Nexus AI uses an **Ag
 ### AI Intelligence
 - **RAG Pipeline** — every document is automatically chunked, embedded, and stored in pgvector
 - **Semantic workspace search** — ask questions, get answers from your actual docs
-- **Streaming AI responses** — typewriter effect with source attribution
+- **Agentic AI Workspace Assistant** — tool-calling & context-aware memory via LangGraph
 - **Context-aware AI** — Gemini 2.5 Flash knows your workspace content
 
 ### Developer Experience
@@ -76,7 +76,7 @@ Unlike traditional tools where AI is just a chatbot panel, Nexus AI uses an **Ag
 | pgvector | Vector similarity search |
 | Supabase Realtime | WebSocket broadcasting |
 | Docker + Docker Compose | Containerization |
-| GitHub Actions | CI/CD pipeline |
+| Langsmith | AI Orchestration            |
 
 ---
 
@@ -84,21 +84,21 @@ Unlike traditional tools where AI is just a chatbot panel, Nexus AI uses an **Ag
 
 ```
 ┌─────────────────────────────────────────────────────────┐
-│                      Browser                             │
-│                   Next.js 14 App                         │
-│         Zustand ──── TanStack Query ──── Axios           │
+│                      Browser                            │
+│                   Next.js 14 App                        │
+│         Zustand ──── TanStack Query ──── Axios          │
 └──────────────────────────┬──────────────────────────────┘
                            │ HTTP / SSE
 ┌──────────────────────────▼──────────────────────────────┐
-│                    FastAPI Backend                        │
-│   Auth ── Workspaces ── Documents ── Tasks ── AI         │
+│                    FastAPI Backend                      │
+│   Auth ── Workspaces ── Documents ── Tasks ── AI        │
 └──────────┬───────────────────────────────┬──────────────┘
            │                               │
-┌──────────▼──────────┐       ┌────────────▼─────────────┐
-│  PostgreSQL          │       │   Google Gemini API       │
-│  (Supabase)          │       │   gemini-2.5-flash        │
-│                      │       │   text-embedding-004      │
-│  ┌─────────────┐     │       └──────────────────────────┘
+┌──────────▼───────────┐       ┌────────────▼────────────┐
+│  PostgreSQL          │       │   Google Gemini API     │
+│  (Supabase)          │       │   gemini-2.5-flash      │
+│                      │       │   text-embedding-004    │
+│  ┌─────────────┐     │       └─────────────────────────┘
 │  │  pgvector   │     │
 │  │  embeddings │     │
 │  └─────────────┘     │
@@ -212,9 +212,17 @@ SUPABASE_URL=https://[ref].supabase.co
 SUPABASE_SERVICE_KEY=your-service-role-key
 GEMINI_API_KEY=your-gemini-api-key
 GEMINI_MODEL=gemini-2.5-flash
+PRODUCTION=False (for localhost)
+SMTP_HOST=smtp.gmail.com
+SMTP_PORT=587
+SMTP_USER= your_email_account (with 2FA verification on and add app)
+SMTP_PASS= your_email_pass generated after following the above step
+LANGSMITH_API_KEY= your_langsmith_api_key
+LANGCHAIN_TRACING_V2=true
+LANGSMITH_PROJECT= your_langsmith_project
 ```
 
-Create `nexus-frontend/.env.local`:
+Create `frontend/.env.local`:
 ```env
 NEXT_PUBLIC_API_URL=http://localhost:8000/api
 NEXT_PUBLIC_SUPABASE_URL=https://[ref].supabase.co
@@ -250,7 +258,7 @@ uvicorn app.main:app --reload --port 8000
 
 **Frontend:**
 ```bash
-cd nexus-frontend
+cd frontend
 npm install
 npm run dev
 ```
@@ -301,8 +309,7 @@ DELETE /api/tasks/:id           → Delete task
 
 ### AI
 ```
-POST /api/ai/chat         → RAG-powered chat response
-POST /api/ai/chat/stream  → Streaming SSE response
+POST /api/ai/chat         → RAG & Agentic chat response
 ```
 
 ---
@@ -310,7 +317,7 @@ POST /api/ai/chat/stream  → Streaming SSE response
 ## Project Structure
 
 ```
-nexus-ai/
+nexus/
 ├── backend/
 │   ├── app/
 │   │   ├── main.py              # FastAPI app entry
@@ -318,23 +325,30 @@ nexus-ai/
 │   │   ├── models.py            # DB models
 │   │   ├── schemas.py           # Pydantic schemas
 │   │   ├── dependencies.py      # JWT auth guard
-│   │   ├── gemini_client.py     # Google GenAI client
-│   │   ├── supabase_client.py   # Supabase client
-│   │   ├── rag/
+│   │   ├── agents/              # LangGraph Agent & Tools
+│   │   │   ├── agent.py         # Agent execution logic
+│   │   │   ├── state.py         # Agent state definition
+│   │   │   └── tools.py         # Agent tools (tasks, search, email)
+│   │   ├── rag/                 # RAG pipeline
 │   │   │   ├── chunker.py       # Text splitting
 │   │   │   ├── embedder.py      # Vector generation
 │   │   │   └── vector_store.py  # pgvector operations
-│   │   └── routes/
-│   │       ├── auth.py
-│   │       ├── workspaces.py
-│   │       ├── documents.py
-│   │       ├── chat.py
-│   │       ├── tasks.py
-│   │       └── ai.py
+│   │   ├── routes/              # API endpoints
+│   │   │   ├── ai.py
+│   │   │   ├── auth.py
+│   │   │   ├── chat.py
+│   │   │   ├── documents.py
+│   │   │   ├── tasks.py
+│   │   │   └── workspaces.py
+│   │   └── utils/               # Helper utility files
+│   │       ├── document_parser.py # PDF/docx parsing
+│   │       ├── gemini_client.py  # Gemini API client
+│   │       ├── redis_client.py   # Redis client
+│   │       └── supabase_client.py # Supabase client connection
 │   ├── Dockerfile
 │   └── requirements.txt
 │
-├── nexus-frontend/
+├── frontend/
 │   ├── app/
 │   │   ├── (auth)/
 │   │   │   ├── login/page.tsx
@@ -364,28 +378,15 @@ nexus-ai/
 ### Frontend → Vercel
 
 ```bash
-cd nexus-frontend
+cd frontend
 npx vercel --prod
 ```
 
 Add environment variables in Vercel dashboard:
-- `NEXT_PUBLIC_API_URL` → your Railway backend URL
+- `NEXT_PUBLIC_API_URL` 
 - `NEXT_PUBLIC_SUPABASE_URL`
 - `NEXT_PUBLIC_SUPABASE_ANON_KEY`
 
-### Backend → Railway
-
-```bash
-cd backend
-railway login
-railway init
-railway up
-```
-
-Add all backend environment variables in Railway dashboard and set start command:
-```
-uvicorn app.main:app --host 0.0.0.0 --port $PORT
-```
 
 ---
 
@@ -397,10 +398,9 @@ uvicorn app.main:app --host 0.0.0.0 --port $PORT
 - [x] Block-based document editor
 - [x] Kanban task board
 - [x] RAG pipeline with pgvector
-- [x] Gemini AI with streaming
+- [x] Gemini AI with tool calling (LangGraph)
 - [x] PDF/Word file upload + extraction
 - [x] Docker containerization
-- [ ] GitHub Actions CI/CD
 - [ ] Standup agent (auto-generates daily standups)
 - [ ] Task suggestion from chat context
 - [ ] GitHub PR → documentation sync

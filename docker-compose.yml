@@ -16,7 +16,7 @@ services:
 
   frontend:
     build:
-      context: ./nexus-frontend
+      context: ./frontend
       dockerfile: Dockerfile
       args:
         - NEXT_PUBLIC_API_URL=https://nexus-1-szak.onrender.com

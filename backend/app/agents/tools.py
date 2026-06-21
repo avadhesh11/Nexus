@@ -201,7 +201,7 @@ def send_task_reminder_email(
 
             body = f"""
             <div style="font-family:sans-serif;max-width:600px;margin:0 auto">
-                <h2 style="color:#7fffb2">Nexus AI — Task Reminder</h2>
+                <h2 style="color:#7fffb2">Nexus — Task Reminder</h2>
                 <p>Hi {user.email.split('@')[0]},</p>
                 <p>You have <strong>{len(tasks)} pending task(s)</strong> in your workspace:</p>
                 <table style="border-collapse:collapse;width:100%">
