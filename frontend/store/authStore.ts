@@ -27,6 +27,7 @@ export const useAuthStore = create<AuthState>()(
         try {
           await api.post("/auth/logout");
           localStorage.removeItem("nexus-workspace");
+          localStorage.removeItem("nexus-auth");
         } catch (err) {
           console.log(err);
         }
