@@ -1,4 +1,4 @@
-from fastapi import FastAPI
+from fastapi import FastAPI,Response
 from fastapi.middleware.cors import CORSMiddleware
 from .database import engine, Base
 from .routes import auth,workspaces,documents,chat,tasks,ai
@@ -26,7 +26,11 @@ app.include_router(tasks.router, prefix="/api")
 app.include_router(ai.router, prefix="/api")
 
 @app.get("/api/health")
-def health():
+def health(response: Response):
+    response.headers["Cache-Control"] = "no-store"
+    response.headers["Pragma"] = "no-cache"
+    response.headers["Expires"] = "0"
+
     return {
         "status": "ok",
         "services": {
