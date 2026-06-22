@@ -1,4 +1,6 @@
 "use client";
+export const dynamic = "force-dynamic";
+export const revalidate = 0;
 import React, { useState, useEffect } from "react";
 import Link from "next/link";
 import { ArrowLeft, CheckCircle, AlertTriangle, Activity, Server, Database, Brain, RefreshCw } from "lucide-react";
@@ -25,12 +27,12 @@ export default function StatusPage() {
   const checkHealth = async () => {
     setLoading(true);
     const start = Date.now();
-    const baseUrl = process.env.NEXT_PUBLIC_API_URL || "http://localhost:8000";
+    const baseUrl = process.env.NEXT_PUBLIC_API_URL || "http://localhost:8000/api";
 
     
     try {
       // Fetch health endpoint
-      const res = await api.get(`${baseUrl}/health`);
+      const res = await api.get("/health");
       const duration = Date.now() - start;
       setPing(duration);
 
