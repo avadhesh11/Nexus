@@ -263,7 +263,7 @@ export default function LandingPage() {
                     ? "bg-red-500 shadow-[0_0_8px_rgba(239,68,68,0.6)]"
                     : "bg-yellow-400 animate-pulse"
                 }`} />
-                <span>Server Status: {apiStatus === "online" ? "Active" : apiStatus === "offline" ? "Offline" : "Checking..."}</span>
+                <span>Check Server status</span>
               </Link>
             </div>
           </div>
