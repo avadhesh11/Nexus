@@ -9,6 +9,11 @@ from ..dependencies import get_current_user
 from ..rag.vector_store import store_embeddings
 from ..utils.document_parser import extract_text_from_file
 from uuid import UUID
+from pathlib import Path
+
+MAX_FILE_SIZE = 10 * 1024 * 1024  # 10 MB
+ALLOWED_EXTENSIONS = {".txt", ".md", ".pdf", ".docx", ".csv", ".xlsx", ".xls"}
+
 router=APIRouter(prefix="/documents",tags=["documents"])
 
 def check_member(workspace_id: str, user_id: str, db: Session):
@@ -57,7 +62,24 @@ def upload_document(
     current_user: User = Depends(get_current_user)
 ):
     check_member(workspace_id, str(current_user.id), db)
-    
+
+    # Validate file extension
+    ext = Path(file.filename).suffix.lower() if file.filename else ""
+    if ext not in ALLOWED_EXTENSIONS:
+        raise HTTPException(
+            status_code=400,
+            detail=f"Unsupported file type '{ext}'. Allowed: {', '.join(sorted(ALLOWED_EXTENSIONS))}"
+        )
+
+    # Validate file size
+    file_bytes = file.file.read()
+    if len(file_bytes) > MAX_FILE_SIZE:
+        raise HTTPException(
+            status_code=413,
+            detail=f"File too large. Maximum size is {MAX_FILE_SIZE // (1024*1024)} MB."
+        )
+    file.file.seek(0)
+
     try:
         extracted_text = extract_text_from_file(file)
     except Exception as e:
@@ -102,7 +124,6 @@ def fetch_doc(
     db:Session=Depends(get_db),
     current_user=Depends(get_current_user)
 ): 
-    print(doc_id)
     doc=db.query(Document).filter(
         Document.id==doc_id
     ).first()
@@ -122,6 +143,9 @@ def delete_doc(
     doc=db.query(Document).filter(
         Document.id==doc_id
     ).first()
+
+    if not doc:
+        raise HTTPException(status_code=404, detail="Document not found")
 
     member=check_member(str(doc.workspace_id), str(current_user.id), db)
 

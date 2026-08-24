@@ -9,6 +9,10 @@ from email.mime.multipart import MIMEMultipart
 from datetime import datetime, timedelta
 import os
 import json
+import html
+import logging
+
+logger = logging.getLogger(__name__)
 
 
 @tool
@@ -54,6 +58,9 @@ Use this whenever the user asks:
             "due_date": t.due_date.isoformat() if t.due_date else None,
             "assigned_to": str(t.assigned_to) if t.assigned_to else None,
         } for t in tasks], indent=2)
+    except Exception:
+        db.rollback()
+        raise
     finally:
         db.close()
 
@@ -91,6 +98,9 @@ def create_task(
         db.commit()
         db.refresh(task)
         return f"Task created: '{title}' | Priority: {priority} | Due: {due_date or 'not set'}"
+    except Exception:
+        db.rollback()
+        raise
     finally:
         db.close()
 
@@ -124,6 +134,9 @@ def update_task(
         task.updated_at = datetime.utcnow()
         db.commit()
         return f" Task '{task.title}' updated successfully."
+    except Exception:
+        db.rollback()
+        raise
     finally:
         db.close()
 
@@ -152,7 +165,7 @@ def _send_email(to: str, subject: str, body: str) -> bool:
             server.sendmail(smtp_user, to, msg.as_string())
         return True
     except Exception as e:
-        print(f"Email error: {e}")
+        logger.error(f"Email send failed: {e}")
         return False
 
 
@@ -191,9 +204,9 @@ def send_task_reminder_email(
 
             task_rows = "".join([
                 f"""<tr>
-                    <td style="padding:8px;border:1px solid #ddd">{t.title}</td>
-                    <td style="padding:8px;border:1px solid #ddd">{t.status}</td>
-                    <td style="padding:8px;border:1px solid #ddd">{t.priority}</td>
+                    <td style="padding:8px;border:1px solid #ddd">{html.escape(t.title)}</td>
+                    <td style="padding:8px;border:1px solid #ddd">{html.escape(str(t.status))}</td>
+                    <td style="padding:8px;border:1px solid #ddd">{html.escape(str(t.priority))}</td>
                     <td style="padding:8px;border:1px solid #ddd">{t.due_date.strftime('%b %d') if t.due_date else 'No deadline'}</td>
                 </tr>"""
                 for t in tasks
@@ -221,6 +234,9 @@ def send_task_reminder_email(
                 sent_count += 1
 
         return f"Sent reminder emails to {sent_count} workspace members."
+    except Exception:
+        db.rollback()
+        raise
     finally:
         db.close()
 
@@ -271,9 +287,9 @@ def send_deadline_alert_email(
             body = f"""
             <div style="font-family:sans-serif;max-width:600px;margin:0 auto">
                 <h2 style="color:#ff6b6b">⚠️ Nexus AI — Deadline Alert</h2>
-                <p>Hi {user.email.split('@')[0]},</p>
-                {"<h3 style='color:red'>🔴 Overdue Tasks</h3><ul>" + "".join(f"<li><strong>{t.title}</strong> — was due {t.due_date.strftime('%b %d')}</li>" for t in overdue) + "</ul>" if overdue else ""}
-                {"<h3 style='color:orange'>🟡 Due Soon (next 2 days)</h3><ul>" + "".join(f"<li><strong>{t.title}</strong> — due {t.due_date.strftime('%b %d')}</li>" for t in upcoming) + "</ul>" if upcoming else ""}
+                <p>Hi {html.escape(user.email.split('@')[0])},</p>
+                {"<h3 style='color:red'>🔴 Overdue Tasks</h3><ul>" + "".join(f"<li><strong>{html.escape(t.title)}</strong> — was due {t.due_date.strftime('%b %d')}</li>" for t in overdue) + "</ul>" if overdue else ""}
+                {"<h3 style='color:orange'>🟡 Due Soon (next 2 days)</h3><ul>" + "".join(f"<li><strong>{html.escape(t.title)}</strong> — due {t.due_date.strftime('%b %d')}</li>" for t in upcoming) + "</ul>" if upcoming else ""}
                 <p>Log in to <a href="https://nexus-gamma-drab.vercel.app">Nexus AI</a> to update your tasks.</p>
             </div>
             """
@@ -282,6 +298,9 @@ def send_deadline_alert_email(
                 sent_count += 1
 
         return f"Sent deadline alerts to {sent_count} members."
+    except Exception:
+        db.rollback()
+        raise
     finally:
         db.close()
 
@@ -322,10 +341,10 @@ def send_important_info_email(
             body = f"""
             <div style="font-family:sans-serif;max-width:600px;margin:0 auto">
                 <h2 style="color:#7fffb2">Nexus AI — Important Update</h2>
-                <p>Hi {user.email.split('@')[0]},</p>
-                <p>You have an important message from workspace <strong>{Wsp.name}</strong>:</p>
+                <p>Hi {html.escape(user.email.split('@')[0])},</p>
+                <p>You have an important message from workspace <strong>{html.escape(Wsp.name)}</strong>:</p>
                 <div style="background:#f9f9f9;border-left:4px solid #7fffb2;padding:16px;margin:16px 0;border-radius:4px">
-                    <p style="margin:0;font-size:16px;color:#333">{content}</p>
+                    <p style="margin:0;font-size:16px;color:#333">{html.escape(content)}</p>
                 </div>
                 <p style="color:#888;font-size:12px">
                     Log in to <a href="https://nexus-gamma-drab.vercel.app">Nexus AI</a> for more details.
@@ -337,6 +356,9 @@ def send_important_info_email(
                 sent_count += 1
 
         return f"Sent emails to {sent_count} workspace members."
+    except Exception:
+        db.rollback()
+        raise
     finally:
         db.close()
 

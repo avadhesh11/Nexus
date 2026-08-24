@@ -1,5 +1,5 @@
-from pydantic import BaseModel, EmailStr
-from typing import Optional
+from pydantic import BaseModel, EmailStr, field_validator
+from typing import Optional, Literal
 from datetime import datetime
 from uuid import UUID
 from typing import Optional
@@ -9,6 +9,17 @@ from datetime import datetime
 class RegisterRequest(BaseModel):
     email: EmailStr
     password: str
+
+    @field_validator("password")
+    @classmethod
+    def validate_password(cls, v):
+        if len(v) < 8:
+            raise ValueError("Password must be at least 8 characters")
+        if not any(c.isupper() for c in v):
+            raise ValueError("Password must contain at least one uppercase letter")
+        if not any(c.isdigit() for c in v):
+            raise ValueError("Password must contain at least one digit")
+        return v
 
 class LoginRequest(BaseModel):
     email: EmailStr
@@ -95,7 +106,7 @@ class MessageCreate(BaseModel):
 class TaskCreate(BaseModel):
     title: str
     description: Optional[str] = None
-    priority: Optional[str] = "medium"
+    priority: Optional[Literal["low", "medium", "high"]] = "medium"
     workspace_id: UUID
     assigned_to: Optional[UUID] = None
     due_date: Optional[datetime] = None
@@ -103,9 +114,9 @@ class TaskCreate(BaseModel):
 class TaskUpdate(BaseModel):
     title: Optional[str] = None
     description: Optional[str] = None
-    status: Optional[str] = None
-    priority: Optional[str] = None
-    assigned_to: Optional[str] = None
+    status: Optional[Literal["todo", "in_progress", "done"]] = None
+    priority: Optional[Literal["low", "medium", "high"]] = None
+    assigned_to: Optional[UUID] = None
     due_date: Optional[datetime] = None
 
 class TaskOut(BaseModel):

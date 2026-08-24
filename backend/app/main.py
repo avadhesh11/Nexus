@@ -1,21 +1,34 @@
-from fastapi import FastAPI,Response
+from fastapi import FastAPI, Response, Request
 from fastapi.middleware.cors import CORSMiddleware
+from fastapi.responses import JSONResponse
+from slowapi import Limiter, _rate_limit_exceeded_handler
+from slowapi.util import get_remote_address
+from slowapi.errors import RateLimitExceeded
 from .database import engine, Base
-from .routes import auth,workspaces,documents,chat,tasks,ai
+from .routes import auth, workspaces, documents, chat, tasks, ai
+import logging
+
+logger = logging.getLogger(__name__)
+
 # Create tables
 try:
     Base.metadata.create_all(bind=engine)
 except Exception as e:
-    print(f"Warning: Could not create tables: {e}")
+    logger.warning(f"Could not create tables: {e}")
 
 app = FastAPI(title="Nexus AI API")
 
+# Rate limiter
+limiter = Limiter(key_func=get_remote_address)
+app.state.limiter = limiter
+app.add_exception_handler(RateLimitExceeded, _rate_limit_exceeded_handler)
+
 app.add_middleware(
     CORSMiddleware,
-    allow_origins=["http://localhost:8080","http://localhost:3000","https://nexus-avadhesh.vercel.app"],
+    allow_origins=["http://localhost:8080", "http://localhost:3000", "https://nexus-avadhesh.vercel.app"],
     allow_credentials=True,
-    allow_methods=["*"],
-    allow_headers=["*"],
+    allow_methods=["GET", "POST", "PATCH", "DELETE", "OPTIONS"],
+    allow_headers=["Content-Type"],
 )
 
 app.include_router(auth.router, prefix="/api")
@@ -24,6 +37,14 @@ app.include_router(documents.router, prefix="/api")
 app.include_router(chat.router, prefix="/api")
 app.include_router(tasks.router, prefix="/api")
 app.include_router(ai.router, prefix="/api")
+
+@app.exception_handler(Exception)
+async def global_exception_handler(request: Request, exc: Exception):
+    logger.error(f"Unhandled exception: {exc}", exc_info=True)
+    return JSONResponse(
+        status_code=500,
+        content={"detail": "Internal server error"}
+    )
 
 @app.get("/api/health")
 def health(response: Response):
@@ -38,4 +59,4 @@ def health(response: Response):
             "database": "operational",
             "agent_engine": "operational"
         }
-    }
+    }
