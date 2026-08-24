@@ -26,7 +26,14 @@ def create_task(
     current_user:User=Depends(get_current_user),
     db:Session=Depends(get_db)
 ):
-    check_workspace_member(body.workspace_id, str(current_user.id), db)
+    member = check_workspace_member(body.workspace_id, str(current_user.id), db)
+
+    if member.role != RoleEnum.admin:
+        raise HTTPException(
+            status_code=403,
+            detail="Only workspace admins can create tasks"
+        )
+
     if body.assigned_to:
         assignee = db.query(WorkspaceMember).filter(
             WorkspaceMember.workspace_id == body.workspace_id,
@@ -37,14 +44,7 @@ def create_task(
                 status_code=400,
                 detail="Assigned user is not a workspace member"
             )
-        member = check_workspace_member(body.workspace_id, str(current_user.id), db)
 
-        if member.role != RoleEnum.admin:
-            raise HTTPException(
-                status_code=403,
-                detail="Only workspace admins can create tasks"
-            )
-        
     task = Task(
         title=body.title,
         description=body.description,
@@ -66,6 +66,8 @@ def fetch_tasks(
     db: Session = Depends(get_db),
     current_user: User = Depends(get_current_user)
 ):
+    check_workspace_member(workspace_id, str(current_user.id), db)
+
     tasks=db.query(Task).filter(
         Task.workspace_id==workspace_id
     )

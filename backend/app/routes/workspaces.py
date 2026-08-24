@@ -2,6 +2,7 @@ from fastapi import APIRouter, Depends, HTTPException, status
 from sqlalchemy.orm import Session
 import uuid
 import secrets
+from datetime import datetime, timedelta, UTC
 
 from ..database import get_db
 from ..models import User, Workspace, WorkspaceMember, RoleEnum
@@ -23,6 +24,7 @@ def create_workspace(
         name=body.name,
         description=body.description,
         invite_code=generate_invite_code(),
+        invite_expires_at=datetime.now(UTC) + timedelta(days=7),
         owner_id=current_user.id
     )
     db.add(workspace)
@@ -100,6 +102,10 @@ def join_workspace(
     if not workspace:
         raise HTTPException(status_code=404, detail="Invalid invite code")
 
+    # Check if invite code has expired
+    if workspace.invite_expires_at and workspace.invite_expires_at < datetime.now(UTC):
+        raise HTTPException(status_code=410, detail="Invite code has expired")
+
     # check already a member
     existing = db.query(WorkspaceMember).filter(
         WorkspaceMember.workspace_id == workspace.id,
@@ -115,6 +121,30 @@ def join_workspace(
         role=RoleEnum.member
     )
     db.add(member)
+    db.commit()
+    db.refresh(workspace)
+    return workspace
+
+
+# REGENERATE invite code (owner only)
+@router.post("/{workspace_id}/regenerate-invite", response_model=WorkspaceOut)
+def regenerate_invite(
+    workspace_id: str,
+    db: Session = Depends(get_db),
+    current_user: User = Depends(get_current_user)
+):
+    workspace = db.query(Workspace).filter(
+        Workspace.id == workspace_id
+    ).first()
+
+    if not workspace:
+        raise HTTPException(status_code=404, detail="Workspace not found")
+
+    if str(workspace.owner_id) != str(current_user.id):
+        raise HTTPException(status_code=403, detail="Only owner can regenerate invite code")
+
+    workspace.invite_code = generate_invite_code()
+    workspace.invite_expires_at = datetime.now(UTC) + timedelta(days=7)
     db.commit()
     db.refresh(workspace)
     return workspace

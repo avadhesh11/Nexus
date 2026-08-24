@@ -3,6 +3,8 @@ from sqlalchemy.orm import Session
 from passlib.context import CryptContext
 from jose import jwt, JWTError
 from datetime import datetime, timedelta, UTC
+from slowapi import Limiter
+from slowapi.util import get_remote_address
 import os
 
 from ..database import get_db
@@ -14,6 +16,7 @@ from ..schemas import (
 )
 
 router = APIRouter(prefix="/auth", tags=["auth"])
+limiter = Limiter(key_func=get_remote_address)
 
 pwd_context = CryptContext(
     schemes=["argon2"],
@@ -100,7 +103,9 @@ def set_auth_cookies(
 
 
 @router.post("/register")
+@limiter.limit("3/minute")
 def register(
+    request: Request,
     body: RegisterRequest,
     response: Response,
     db: Session = Depends(get_db)
@@ -112,7 +117,7 @@ def register(
     if existing:
         raise HTTPException(
             status_code=400,
-            detail="Email already registered"
+            detail="Registration failed. Please try again or use a different email."
         )
 
     user = User(
@@ -144,7 +149,9 @@ def register(
     }
 
 @router.post("/login")
+@limiter.limit("5/minute")
 def login(
+    request: Request,
     body: LoginRequest,
     response: Response,
     db: Session = Depends(get_db)
@@ -183,6 +190,7 @@ def login(
 
 
 @router.post("/refresh")
+@limiter.limit("10/minute")
 def refresh_token(
     request: Request,
     response: Response,
@@ -232,13 +240,14 @@ def refresh_token(
         user.email
     )
 
-    response.set_cookie(
-        key="access_token",
-        value=new_access,
-        httponly=True,
-        secure=False,
-        samesite="lax",
-        max_age=60 * 15
+    new_refresh = create_refresh_token(
+        str(user.id)
+    )
+
+    set_auth_cookies(
+        response,
+        new_access,
+        new_refresh
     )
 
     return {
@@ -291,6 +300,12 @@ def me(
             algorithms=[ALGORITHM]
         )
 
+        if payload.get("type") != "access":
+            raise HTTPException(
+                status_code=401,
+                detail="Invalid token type"
+            )
+
         user_id = payload.get("sub")
 
     except JWTError:
@@ -312,8 +327,3 @@ def me(
     return user
 
 
-@router.get("/debug")
-def debug(request: Request):
-    return {
-        "cookies": dict(request.cookies)
-    }

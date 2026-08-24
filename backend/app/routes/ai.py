@@ -6,6 +6,9 @@ from ..schemas import AIChatRequest
 from ..dependencies import get_current_user
 from ..agents.agent import run_agent
 import json
+import logging
+
+logger = logging.getLogger(__name__)
 
 router = APIRouter(prefix="/ai", tags=["ai"])
 
@@ -37,5 +40,5 @@ async def chat(
         is_admin=is_admin,
         history=[{"role": m.role, "content": m.content} for m in body.history]
     )
-    print(result)
+    logger.debug("AI chat response generated for user %s", current_user.id)
     return result
