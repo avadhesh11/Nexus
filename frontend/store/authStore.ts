@@ -26,14 +26,18 @@ export const useAuthStore = create<AuthState>()(
       logout: async () => {
         try {
           await api.post("/auth/logout");
-          localStorage.removeItem("nexus-workspace");
-          localStorage.removeItem("nexus-auth");
         } catch (err) {
           console.log(err);
         }
-        set({
-          user: null,
-        });
+        // Clear all persisted stores
+        localStorage.removeItem("nexus-workspace");
+        localStorage.removeItem("nexus-auth");
+
+        // Reset Zustand in-memory state
+        const { useWorkspaceStore } = await import("@/store/workspaceStore");
+        useWorkspaceStore.getState().clearWorkspace();
+
+        set({ user: null });
       },
 
       isAuthenticated: () => !!get().user,
