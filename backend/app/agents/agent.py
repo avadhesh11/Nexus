@@ -16,34 +16,114 @@ import os
 
 
 def get_agent_tools(is_admin: bool, workspace_id: str, user_id: str):
-    """Return tools with context baked in via partial functions."""
+    """Return tools with context baked in via closure functions to preserve schema validation."""
+    from langchain_core.tools import tool as make_tool
 
-    # Wrap tools to inject workspace context automatically
-    def wrap(tool_fn, **defaults):
-        from langchain_core.tools import tool as make_tool
+    # 1. search_workspace
+    @make_tool
+    def search_workspace_tool(query: str) -> str:
+        """Search workspace documents and knowledge.
+        Use this whenever the user asks about project details, requirements, decisions, meetings, documentation, or deadlines."""
+        return search_workspace.func(query=query, workspace_id=workspace_id)
 
-        @make_tool
-        def wrapped(**kwargs):
-            return tool_fn(**{**defaults, **kwargs})
+    # 2. get_tasks
+    @make_tool
+    def get_tasks_tool(status: str = None) -> str:
+        """Retrieve workspace tasks.
+        Use this whenever the user asks:
+        - what tasks exist
+        - pending tasks
+        - completed tasks
+        - task status
+        - assigned work
+        """
+        return get_tasks.func(workspace_id=workspace_id, status=status)
 
-        wrapped.name = tool_fn.name
-        wrapped.description = tool_fn.description
-        return wrapped
+    # 3. get_recent_chat
+    @make_tool
+    def get_recent_chat_tool(limit: int = 20) -> str:
+        """Get recent chat messages from the workspace."""
+        return get_recent_chat.func(workspace_id=workspace_id, limit=limit)
 
     tools = [
-        search_workspace,
-        get_tasks,
-        get_recent_chat,
+        search_workspace_tool,
+        get_tasks_tool,
+        get_recent_chat_tool,
     ]
 
     # Admin-only tools
     if is_admin:
+        # 4. create_task
+        @make_tool
+        def create_task_tool(
+            title: str,
+            description: str = "",
+            priority: str = "medium",
+            due_date: str = None
+        ) -> str:
+            """Create a new task."""
+            return create_task.func(
+                workspace_id=workspace_id,
+                created_by=user_id,
+                title=title,
+                description=description,
+                priority=priority,
+                due_date=due_date,
+                is_admin=is_admin
+            )
+
+        # 5. update_task
+        @make_tool
+        def update_task_tool(
+            task_id: str,
+            status: str = None,
+            priority: str = None,
+            title: str = None
+        ) -> str:
+            """Update a task's status, priority or title."""
+            return update_task.func(
+                task_id=task_id,
+                status=status,
+                priority=priority,
+                title=title,
+                is_admin=is_admin
+            )
+
+        # 6. send_task_reminder_email
+        @make_tool
+        def send_task_reminder_email_tool() -> str:
+            """Send reminder emails to all members about their pending tasks."""
+            return send_task_reminder_email.func(
+                workspace_id=workspace_id,
+                is_admin=is_admin
+            )
+
+        # 7. send_deadline_alert_email
+        @make_tool
+        def send_deadline_alert_email_tool() -> str:
+            """Send deadline alert emails for tasks due in the next 2 days."""
+            return send_deadline_alert_email.func(
+                workspace_id=workspace_id,
+                is_admin=is_admin
+            )
+
+        # 8. send_important_info_email
+        @make_tool
+        def send_important_info_email_tool(content: str) -> str:
+            """Send important information or meeting details to all workspace members.
+            Provide the exact content/message to be sent in the content argument."""
+            return send_important_info_email.func(
+                workspace_id=workspace_id,
+                content=content,
+                is_admin=is_admin
+            )
+
         tools += [
-            create_task,
-            update_task,
-            send_task_reminder_email,
-            send_deadline_alert_email,
-            send_important_info_email
+            create_task_tool,
+            update_task_tool,
+            send_task_reminder_email_tool,
+            send_deadline_alert_email_tool,
+            send_important_info_email_tool
         ]
 
     return tools
@@ -87,11 +167,10 @@ Current session:
 {admin_note}
 
 Guidelines:
-1. Always search workspace docs before answering questions
-2. When asked to send emails, check is_admin first — always pass is_admin={str(is_admin).lower()} to email tools
-3. When creating/updating tasks always pass workspace_id="{workspace_id}", created_by="{user_id}", is_admin={str(is_admin).lower()}
-4. Be concise and action-oriented
-5. After taking actions, confirm what was done
+1. Always search workspace docs before answering questions.
+2. Context variables like workspace ID, user ID, and administrative permissions are automatically managed. You do not need to provide them as arguments when calling tools.
+3. Be concise and action-oriented.
+4. After taking actions, confirm what was done.
 """
 
     agent = create_react_agent(
