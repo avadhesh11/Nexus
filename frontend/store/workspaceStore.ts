@@ -7,6 +7,7 @@ interface WorkspaceState {
   workspaces: Workspace[];
   setCurrentWorkspace: (workspace: Workspace) => void;
   setWorkspaces: (workspaces: Workspace[]) => void;
+  clearWorkspace: () => void;
 }
 
 export const useWorkspaceStore = create<WorkspaceState>()(
@@ -16,6 +17,7 @@ export const useWorkspaceStore = create<WorkspaceState>()(
       workspaces: [],
       setCurrentWorkspace: (workspace) => set({ currentWorkspace: workspace }),
       setWorkspaces: (workspaces) => set({ workspaces }),
+      clearWorkspace: () => set({ currentWorkspace: null, workspaces: [] }),
     }),
     { name: "nexus-workspace", partialize: (s) => ({ currentWorkspace: s.currentWorkspace }) }
   )

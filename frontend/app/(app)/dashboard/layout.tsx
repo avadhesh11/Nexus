@@ -48,9 +48,12 @@ const [newWorkspaceName, setNewWorkspaceName] = useState("");
         setWsList(ws);
         setWorkspaces(ws);
 
-        // Set first workspace only if none selected
-        if (!currentWorkspace && ws.length > 0) {
+        // Validate persisted workspace belongs to this user, otherwise reset
+        const belongsToUser = currentWorkspace && ws.some((w: Workspace) => w.id === currentWorkspace.id);
+        if (!belongsToUser && ws.length > 0) {
           setCurrentWorkspace(ws[0]);
+        } else if (ws.length === 0) {
+          setCurrentWorkspace(null as unknown as Workspace);
         }
       } catch (err: unknown) {
         const error = err as { response?: { status?: number } };
