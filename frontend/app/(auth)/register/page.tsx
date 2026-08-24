@@ -58,15 +58,25 @@ export default function RegisterPage() {
       const error = err as {
         response?: {
           data?: {
-            detail?: string;
+            detail?: string | Array<{ msg?: string }>;
           };
         };
       };
 
-      setError(
-        error.response?.data?.detail ||
-          "Registration failed"
-      );
+      const detail = error.response?.data?.detail;
+      let message = "Registration failed";
+
+      if (typeof detail === "string") {
+        message = detail;
+      } else if (Array.isArray(detail) && detail.length > 0) {
+        // Pydantic validation errors return an array of objects
+        message = detail
+          .map((d) => d.msg?.replace(/^Value error, /i, "") || "")
+          .filter(Boolean)
+          .join(". ") || message;
+      }
+
+      setError(message);
 
     } finally {
       setLoading(false);
