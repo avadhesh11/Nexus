@@ -110,7 +110,7 @@ export default function RegisterPage() {
           </div>
           <div>
             <label className="block text-xs text-[#5a5a7a] mb-1.5 font-medium">Password</label>
-            <input className="nexus-input" type="password" value={password} onChange={(e) => setPassword(e.target.value)} placeholder="min 8 characters" required minLength={8} />
+            <input className="nexus-input" type="password" value={password} onChange={(e) => setPassword(e.target.value)} placeholder="MIN 8 characters,at least One uppercase and one digit" required minLength={8} />
           </div>
 
           {error && (
