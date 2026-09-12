@@ -1,4 +1,5 @@
 from fastapi import APIRouter, Depends, HTTPException, status, Response, Request
+from fastapi.responses import RedirectResponse
 from sqlalchemy.orm import Session
 from passlib.context import CryptContext
 from jose import jwt, JWTError
@@ -6,6 +7,7 @@ from datetime import datetime, timedelta, UTC
 from slowapi import Limiter
 from slowapi.util import get_remote_address
 import os
+import httpx
 
 from ..database import get_db
 from ..models import User
@@ -29,7 +31,11 @@ REFRESH_TOKEN_EXPIRE_DAYS = 7
 SECRET = os.getenv("JWT_SECRET")
 ALGORITHM = os.getenv("JWT_ALGORITHM")
 
-PRODUCTION= os.getenv("PRODUCTION", "false").lower() in ("true", "1")
+PRODUCTION = os.getenv("PRODUCTION", "false").lower() in ("true", "1")
+GITHUB_CLIENT_ID = os.getenv("GITHUB_CLIENT_ID")
+GITHUB_CLIENT_SECRET = os.getenv("GITHUB_CLIENT_SECRET")
+FRONTEND_URL = os.getenv("FRONTEND_URL", "http://localhost:3000")
+
 
 
 def hash_password(password: str) -> str:
@@ -160,7 +166,7 @@ def login(
         User.email == body.email
     ).first()
 
-    if not user or not verify_password(
+    if not user or not user.password or not verify_password(
         body.password,
         user.password
     ):
@@ -325,5 +331,119 @@ def me(
         )
 
     return user
+
+
+@router.get("/github")
+def github_login():
+    client_id = os.getenv("GITHUB_CLIENT_ID")
+    if not client_id:
+        raise HTTPException(
+            status_code=500,
+            detail="GitHub OAuth is not configured. Please add GITHUB_CLIENT_ID to backend/.env"
+        )
+    github_auth_url = f"https://github.com/login/oauth/authorize?client_id={client_id}&scope=user:email"
+    return RedirectResponse(url=github_auth_url)
+
+
+@router.get("/github/callback")
+async def github_callback(
+    code: str,
+    db: Session = Depends(get_db)
+):
+    client_id = os.getenv("GITHUB_CLIENT_ID")
+    client_secret = os.getenv("GITHUB_CLIENT_SECRET")
+    frontend_url = os.getenv("FRONTEND_URL", "http://localhost:3000")
+
+    if not client_id or not client_secret:
+        raise HTTPException(
+            status_code=500,
+            detail="GitHub OAuth is not configured. Please add GITHUB_CLIENT_ID and GITHUB_CLIENT_SECRET to backend/.env"
+        )
+
+    async with httpx.AsyncClient() as client:
+        # Exchange code for access token
+        token_res = await client.post(
+            "https://github.com/login/oauth/access_token",
+            json={
+                "client_id": client_id,
+                "client_secret": client_secret,
+                "code": code,
+            },
+            headers={"Accept": "application/json"}
+        )
+
+        if token_res.status_code != 200:
+            return RedirectResponse(
+                url=f"{frontend_url}/login?error=Failed+to+communicate+with+GitHub"
+            )
+
+        token_data = token_res.json()
+        github_token = token_data.get("access_token")
+        if not github_token:
+            error_desc = token_data.get("error_description", "GitHub authentication failed")
+            return RedirectResponse(
+                url=f"{frontend_url}/login?error={error_desc}"
+            )
+
+        # Get user email
+        emails_res = await client.get(
+            "https://api.github.com/user/emails",
+            headers={
+                "Authorization": f"Bearer {github_token}",
+                "Accept": "application/json",
+                "User-Agent": "NexusAI-App"
+            }
+        )
+
+        user_email = None
+        if emails_res.status_code == 200:
+            emails_data = emails_res.json()
+            for email_info in emails_data:
+                if email_info.get("primary") and email_info.get("verified"):
+                    user_email = email_info.get("email")
+                    break
+            if not user_email and emails_data:
+                user_email = emails_data[0].get("email")
+
+        # Fallback to user profile
+        if not user_email:
+            profile_res = await client.get(
+                "https://api.github.com/user",
+                headers={
+                    "Authorization": f"Bearer {github_token}",
+                    "Accept": "application/json",
+                    "User-Agent": "NexusAI-App"
+                }
+            )
+            if profile_res.status_code == 200:
+                profile_data = profile_res.json()
+                user_email = profile_data.get("email")
+
+        if not user_email:
+            return RedirectResponse(
+                url=f"{frontend_url}/login?error=Could+not+retrieve+email+from+GitHub"
+            )
+
+    # Find or create user
+    user = db.query(User).filter(User.email == user_email).first()
+    if not user:
+        user = User(
+            email=user_email,
+            password=None
+        )
+        db.add(user)
+        db.commit()
+        db.refresh(user)
+
+    access_token = create_access_token(str(user.id), user.email)
+    refresh_token = create_refresh_token(str(user.id))
+
+    redirect_response = RedirectResponse(
+        url=f"{frontend_url}/dashboard",
+        status_code=302
+    )
+    set_auth_cookies(redirect_response, access_token, refresh_token)
+    return redirect_response
+
 
 

@@ -5,7 +5,7 @@ from slowapi import Limiter, _rate_limit_exceeded_handler
 from slowapi.util import get_remote_address
 from slowapi.errors import RateLimitExceeded
 from .database import engine, Base
-from .routes import auth, workspaces, documents, chat, tasks, ai
+from .routes import auth, workspaces, documents, chat, tasks, ai, github
 import logging
 
 logger = logging.getLogger(__name__)
@@ -37,6 +37,18 @@ app.include_router(documents.router, prefix="/api")
 app.include_router(chat.router, prefix="/api")
 app.include_router(tasks.router, prefix="/api")
 app.include_router(ai.router, prefix="/api")
+app.include_router(github.router, prefix="/api")
+
+
+from starlette.exceptions import HTTPException as StarletteHTTPException
+
+@app.exception_handler(StarletteHTTPException)
+async def http_exception_handler(request: Request, exc: StarletteHTTPException):
+    return JSONResponse(
+        status_code=exc.status_code,
+        content={"detail": exc.detail},
+        headers=getattr(exc, "headers", None)
+    )
 
 @app.exception_handler(Exception)
 async def global_exception_handler(request: Request, exc: Exception):
