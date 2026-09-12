@@ -62,6 +62,10 @@ def upload_document(
     current_user: User = Depends(get_current_user)
 ):
     check_member(workspace_id, str(current_user.id), db)
+    from ..models import Workspace
+    ws = db.query(Workspace).filter(Workspace.id == workspace_id).first()
+    if ws and not ws.settings_allow_file_uploads:
+        raise HTTPException(status_code=403, detail="File uploads are disabled by workspace admin")
 
     # Validate file extension
     ext = Path(file.filename).suffix.lower() if file.filename else ""

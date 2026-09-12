@@ -32,6 +32,7 @@ export default function DocumentsPage() {
     mutationFn: () => api.post("/documents/", { title: newTitle || "Untitled", content: "", workspace_id: currentWorkspace?.id }),
     onSuccess: (res) => {
       qc.invalidateQueries({ queryKey: ["documents"] });
+      qc.invalidateQueries({ queryKey: ["workspace-activity"] });
       setShowNew(false);
       setNewTitle("");
       router.push(`/dashboard/documents/${res.data.id}`);
@@ -40,7 +41,10 @@ export default function DocumentsPage() {
 
   const deleteMutation = useMutation({
     mutationFn: (id: string) => api.delete(`/documents/${id}`),
-    onSuccess: () => qc.invalidateQueries({ queryKey: ["documents"] }),
+    onSuccess: () => {
+      qc.invalidateQueries({ queryKey: ["documents"] });
+      qc.invalidateQueries({ queryKey: ["workspace-activity"] });
+    },
   });
   const ws=currentWorkspace;
   const handleFileUpload = async (e: React.ChangeEvent<HTMLInputElement>) => {
@@ -61,12 +65,13 @@ export default function DocumentsPage() {
       });
 
       qc.invalidateQueries({ queryKey: ["documents"] });
+      qc.invalidateQueries({ queryKey: ["workspace-activity"] });
       router.push(`/dashboard/documents/${data.id}`);
     } catch (err) {
       console.error(err);
     }
   };
-  if (isLoading) return <div className="flex items-center justify-center h-64"><Spinner className="w-5 h-5" /></div>;
+  if (isLoading && docs.length === 0) return <div className="flex items-center justify-center h-64"><Spinner className="w-5 h-5" /></div>;
 
   return (
     <div className="p-6 max-w-3xl">

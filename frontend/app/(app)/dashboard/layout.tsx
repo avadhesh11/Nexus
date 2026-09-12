@@ -9,14 +9,16 @@ import { Avatar } from "@/components/app/Avatar";
 import { Spinner } from "@/components/app/Spinner";
 import api from "@/lib/api";
 import { Workspace } from "@/types";
-import { FileText, MessageSquare, CheckSquare, Sparkles, LogOut, Copy, Check, ChevronDown, Plus ,LayoutDashboard} from "lucide-react";
+import { FileText, MessageSquare, CheckSquare, Sparkles, LogOut, Copy, Check, ChevronDown, Plus, LayoutDashboard, GitPullRequest, Settings } from "lucide-react";
 
 const NAV = [
-  { path:"/dashboard" ,href: "/dashboard", label: "Dashboard", icon: LayoutDashboard },
-  {  path:"/documents" ,href: "/dashboard/documents", label: "Documents", icon: FileText },
-  { path:"/chat" , href: "/dashboard/chat", label: "Chat", icon: MessageSquare },
-  {  path:"/tasks" ,href: "/dashboard/tasks", label: "Tasks", icon: CheckSquare },
-  { path:"/ai" , href: "/dashboard/ai", label: "AI Assistant", icon: Sparkles },
+  { path: "/dashboard", href: "/dashboard", label: "Dashboard", icon: LayoutDashboard },
+  { path: "/documents", href: "/dashboard/documents", label: "Documents", icon: FileText },
+  { path: "/chat", href: "/dashboard/chat", label: "Chat", icon: MessageSquare },
+  { path: "/tasks", href: "/dashboard/tasks", label: "Tasks", icon: CheckSquare },
+  { path: "/ai", href: "/dashboard/ai", label: "AI Assistant", icon: Sparkles },
+  { path: "/integrations", href: "/dashboard/integrations", label: "GitHub Hub", icon: GitPullRequest },
+  { path: "/settings", href: "/dashboard/settings", label: "Settings", icon: Settings },
 ];
 
 export default function DashboardLayout({ children }: { children: React.ReactNode }) {
@@ -286,6 +288,15 @@ const [newWorkspaceName, setNewWorkspaceName] = useState("");
     </button>
   </div>
 )}
+
+<Link
+  href="/dashboard/settings"
+  onClick={() => setShowWsMenu(false)}
+  className="w-full flex items-center gap-2 px-3 py-2 text-xs text-[#7a7a9a] hover:bg-surface2 hover:text-white transition-colors border-t border-[#1e1e2e]"
+>
+  <Settings className="w-3 h-3 text-accent" />
+  Workspace Settings
+</Link>
         
         </div>
           )}
@@ -295,7 +306,7 @@ const [newWorkspaceName, setNewWorkspaceName] = useState("");
         <nav className="flex-1 p-2 pt-3">
           <div className="text-[9px] text-[#5a5a7a] px-2.5 mb-2 font-mono tracking-widest">NAVIGATION</div>
           {NAV.map(({ href, label, icon: Icon }) => {
-            const active = (pathname==href);
+            const active = href === "/dashboard" ? pathname === "/dashboard" : pathname.startsWith(href);
             return (
               <Link key={href} href={href}
                 className={`sidebar-nav-item mb-0.5 ${active ? "active" : ""}`}
@@ -325,16 +336,18 @@ const [newWorkspaceName, setNewWorkspaceName] = useState("");
       <div className="flex-1 flex flex-col overflow-hidden">
         <header className="border-b border-[#1e1e2e] flex items-center justify-between px-5 flex-shrink-0" style={{ height: 52 }}>
           <div className="font-display font-bold text-sm">
-            {NAV.find(n => pathname.startsWith(n.href))?.label || "Dashboard"}
+            {NAV.filter(n => n.href !== "/dashboard" && pathname.startsWith(n.href))[0]?.label || (pathname === "/dashboard" ? "Dashboard" : "Dashboard")}
           </div>
           <div className="flex items-center gap-2">
-            <button onClick={copyInvite}
-              className="flex items-center gap-1.5 px-3 py-1.5 border border-[#1e1e2e] rounded-lg text-[11px] font-mono text-[#5a5a7a] hover:border-[#2a2a3e] transition-colors"
-            >
-              <span>Invite:</span>
-              <span className="text-accent">{currentWorkspace.invite_code}</span>
-              {copied ? <Check className="w-3 h-3 text-accent" /> : <Copy className="w-3 h-3" />}
-            </button>
+            {(!currentWorkspace.settings_restrict_invites || currentWorkspace.owner_id === user?.id) && (
+              <button onClick={copyInvite}
+                className="flex items-center gap-1.5 px-3 py-1.5 border border-[#1e1e2e] rounded-lg text-[11px] font-mono text-[#5a5a7a] hover:border-[#2a2a3e] transition-colors"
+              >
+                <span>Invite:</span>
+                <span className="text-accent">{currentWorkspace.invite_code}</span>
+                {copied ? <Check className="w-3 h-3 text-accent" /> : <Copy className="w-3 h-3" />}
+              </button>
+            )}
           </div>
         </header>
 
