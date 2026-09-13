@@ -34,15 +34,20 @@ from ..schemas import (
 from ..dependencies import get_current_user
 from ..services.github_app import (
     verify_webhook_signature,
+    list_app_installations,
     list_installation_repositories,
-    get_installation_access_token
+    get_installation_access_token,
+    fetch_repository_commits,
+    fetch_repository_pull_requests
 )
+
 from langchain_google_genai import ChatGoogleGenerativeAI
 from langchain_core.messages import SystemMessage, HumanMessage
 
 logger = logging.getLogger(__name__)
 
 router = APIRouter(prefix="", tags=["github"])
+
 
 
 def check_workspace_membership(workspace_id: str, user_id: str, db: Session):
@@ -88,15 +93,15 @@ async def get_github_status(
             db.commit()
             db.refresh(connection)
 
-    # Auto-heal: If no connection or connection installation_id might be App ID, check GitHub App installations!
-    try:
-        installations = await list_app_installations()
-        if installations:
-            first_inst = installations[0]
-            real_inst_id = str(first_inst["id"])
-            account_login = first_inst.get("account", {}).get("login")
-            
-            if not connection:
+    # Auto-heal: If no connection, check GitHub App installations
+    if not connection:
+        try:
+            installations = await list_app_installations()
+            if installations:
+                first_inst = installations[0]
+                real_inst_id = str(first_inst["id"])
+                account_login = first_inst.get("account", {}).get("login")
+                
                 connection = GitHubConnection(
                     user_id=current_user.id,
                     workspace_id=workspace_id,
@@ -107,14 +112,9 @@ async def get_github_status(
                 db.add(connection)
                 db.commit()
                 db.refresh(connection)
-            elif connection.installation_id != real_inst_id:
-                connection.installation_id = real_inst_id
-                if account_login:
-                    connection.github_login = account_login
-                db.commit()
-                db.refresh(connection)
-    except Exception as e:
-        logger.warning("Could not auto-sync installations in get_github_status: %s", e)
+        except Exception as e:
+            logger.warning("Could not auto-sync installations in get_github_status: %s", e)
+
 
     if not connection:
         return {
@@ -192,8 +192,9 @@ async def get_repositories(
         try:
             return await sync_repositories(workspace_id, db, current_user)
         except Exception as e:
-            logger.warning("Could not auto-sync repositories in get_repositories: %s", e)
+            logger.warning("Auto-sync fallback in get_repositories: %s", e)
     return repos
+
 
 
 @router.post("/integrations/github/repositories/sync", response_model=list[GitHubRepositoryOut])
@@ -218,13 +219,12 @@ async def sync_repositories(
             db.commit()
             db.refresh(connection)
 
-    # Check if we can auto-discover or heal the installation ID
-    try:
-        installations = await list_app_installations()
-        if installations:
-            first_inst = installations[0]
-            real_inst_id = str(first_inst["id"])
-            if not connection:
+    if not connection:
+        try:
+            installations = await list_app_installations()
+            if installations:
+                first_inst = installations[0]
+                real_inst_id = str(first_inst["id"])
                 connection = GitHubConnection(
                     user_id=current_user.id,
                     workspace_id=workspace_id,
@@ -235,17 +235,12 @@ async def sync_repositories(
                 db.add(connection)
                 db.commit()
                 db.refresh(connection)
-            elif connection.installation_id != real_inst_id:
-                connection.installation_id = real_inst_id
-                if first_inst.get("account"):
-                    connection.github_login = first_inst["account"].get("login", connection.github_login)
-                db.commit()
-                db.refresh(connection)
-    except Exception as e:
-        logger.warning("Installation auto-discovery error: %s", e)
+        except Exception as e:
+            logger.warning("Installation auto-discovery error: %s", e)
 
     if not connection:
         raise HTTPException(status_code=400, detail="No active GitHub App connection for this workspace")
+
 
     remote_repos = []
     try:
@@ -275,6 +270,19 @@ async def sync_repositories(
                     })
                 if remote_repos:
                     break
+
+    # If remote repos were discovered, prune any repos in DB that are no longer accessible
+    if remote_repos:
+        remote_repo_ids = {str(repo_data["id"]) for repo_data in remote_repos}
+        stale_repos = db.query(GitHubRepository).filter(
+            GitHubRepository.workspace_id == workspace_id,
+            ~GitHubRepository.github_repo_id.in_(remote_repo_ids)
+        ).all()
+        for stale in stale_repos:
+            db.query(GitHubCommit).filter(GitHubCommit.repository_id == stale.id).delete(synchronize_session=False)
+            db.query(GitHubPullRequest).filter(GitHubPullRequest.repository_id == stale.id).delete(synchronize_session=False)
+            db.delete(stale)
+        db.commit()
 
     synced_repos = []
     for repo_data in remote_repos:
@@ -309,12 +317,15 @@ async def sync_repositories(
     db.commit()
     for r in synced_repos:
         db.refresh(r)
+        if r.is_active:
+            await sync_repository_activity(r, db)
 
     return synced_repos
 
 
+
 @router.post("/integrations/github/repositories/toggle", response_model=GitHubRepositoryOut)
-def toggle_repository_sync(
+async def toggle_repository_sync(
     body: GitHubRepositoryToggle,
     db: Session = Depends(get_db),
     current_user: User = Depends(get_current_user)
@@ -327,7 +338,115 @@ def toggle_repository_sync(
     repo.is_active = body.is_active
     db.commit()
     db.refresh(repo)
+
+    if repo.is_active:
+        await sync_repository_activity(repo, db)
+
     return repo
+
+
+async def sync_repository_activity(repo: GitHubRepository, db: Session):
+
+    """Fetch latest commits and pull requests directly from GitHub API for a repo."""
+    if not repo.installation_id:
+        return
+    try:
+        # 1. Fetch commits
+        commits_data = await fetch_repository_commits(repo.installation_id, repo.owner_login, repo.name, per_page=30)
+        for c in commits_data:
+            sha = c.get("sha")
+            if not sha:
+                continue
+            existing = db.query(GitHubCommit).filter(GitHubCommit.sha == sha).first()
+            if not existing:
+                commit_info = c.get("commit", {})
+                author_info = c.get("author") or {}
+                author_login = (
+                    author_info.get("login")
+                    or commit_info.get("author", {}).get("name")
+                    or "developer"
+                )
+                author_id = str(author_info.get("id", ""))
+                msg = commit_info.get("message", "")
+                date_str = commit_info.get("author", {}).get("date")
+                dt = datetime.fromisoformat(date_str.replace("Z", "+00:00")) if date_str else datetime.now(UTC)
+
+                new_commit = GitHubCommit(
+                    sha=sha,
+                    repository_id=repo.id,
+                    author_github_id=author_id,
+                    author_login=author_login,
+                    message=msg,
+                    branch=repo.default_branch or "main",
+                    url=c.get("html_url"),
+                    additions=0,
+                    deletions=0,
+                    committed_at=dt
+                )
+                db.add(new_commit)
+
+        # 2. Fetch Pull Requests
+        prs_data = await fetch_repository_pull_requests(repo.installation_id, repo.owner_login, repo.name, state="all", per_page=30)
+        for p in prs_data:
+            github_pr_id = str(p.get("id"))
+            if not github_pr_id:
+                continue
+            existing_pr = db.query(GitHubPullRequest).filter(GitHubPullRequest.github_pr_id == github_pr_id).first()
+            pr_state = "merged" if p.get("merged_at") else p.get("state", "open")
+            merged_at = None
+            if p.get("merged_at"):
+                try:
+                    merged_at = datetime.fromisoformat(p["merged_at"].replace("Z", "+00:00"))
+                except Exception:
+                    merged_at = None
+
+            if not existing_pr:
+                new_pr = GitHubPullRequest(
+                    github_pr_id=github_pr_id,
+                    pr_number=p.get("number"),
+                    repository_id=repo.id,
+                    author_github_id=str(p.get("user", {}).get("id", "")),
+                    author_login=p.get("user", {}).get("login"),
+                    title=p.get("title", ""),
+                    body=p.get("body"),
+                    state=pr_state,
+                    head_branch=p.get("head", {}).get("ref"),
+                    base_branch=p.get("base", {}).get("ref"),
+                    merged_at=merged_at,
+                    url=p.get("html_url", "")
+                )
+                db.add(new_pr)
+                db.flush()
+                match_pr_to_tasks(new_pr, repo.workspace_id, db)
+            else:
+                existing_pr.title = p.get("title", existing_pr.title)
+                existing_pr.body = p.get("body", existing_pr.body)
+                existing_pr.state = pr_state
+                existing_pr.merged_at = merged_at
+                match_pr_to_tasks(existing_pr, repo.workspace_id, db)
+
+        db.commit()
+    except Exception as e:
+        logger.warning("Error syncing activity for repo %s: %s", repo.full_name, e)
+
+
+@router.post("/integrations/github/sync-activity")
+async def sync_github_activity(
+    workspace_id: str,
+    db: Session = Depends(get_db),
+    current_user: User = Depends(get_current_user)
+):
+    check_workspace_membership(workspace_id, str(current_user.id), db)
+    repos = db.query(GitHubRepository).filter(
+        GitHubRepository.workspace_id == workspace_id,
+        GitHubRepository.is_active == True
+    ).all()
+
+    for repo in repos:
+        await sync_repository_activity(repo, db)
+
+    return {"status": "ok", "synced_repositories": len(repos)}
+
 
 
 # --- Webhook Gateway & Processor ---
@@ -597,6 +716,17 @@ async def get_since_you_were_away(
         GitHubCommit.committed_at >= since_time
     ).order_by(GitHubCommit.committed_at.desc()).limit(25).all()
 
+    # If no commits strictly since last seen, fallback to the latest commits & PRs
+    is_historical = False
+    if not prs and not commits and repo_ids:
+        prs = db.query(GitHubPullRequest).filter(
+            GitHubPullRequest.repository_id.in_(repo_ids)
+        ).order_by(GitHubPullRequest.created_at.desc()).limit(10).all()
+        commits = db.query(GitHubCommit).filter(
+            GitHubCommit.repository_id.in_(repo_ids)
+        ).order_by(GitHubCommit.committed_at.desc()).limit(20).all()
+        is_historical = True
+
     summary = ""
     if prs or commits:
         try:
@@ -605,23 +735,23 @@ async def get_since_you_were_away(
                 google_api_key=os.getenv("GEMINI_API_KEY"),
                 temperature=0.3
             )
-            pr_bullets = "\n".join([f"- PR #{p.pr_number} '{p.title}' ({p.state}) by @{p.author_login}" for p in prs[:8]])
-            commit_bullets = "\n".join([f"- Commit on '{c.branch}': {c.message} by {c.author_login}" for c in commits[:10]])
+            pr_bullets = "\n".join([f"- PR #{p.pr_number} '{p.title}' ({p.state}) by @{p.author_login}" for p in prs[:6]])
+            commit_bullets = "\n".join([f"- Commit on '{c.branch}': {c.message.splitlines()[0]} by {c.author_login}" for c in commits[:8]])
 
-            prompt = f"""You are Nexus Workspace Assistant. Synthesize a concise 2-3 sentence 'Since You Were Away' executive brief for the user summarizing key developments.
+            prompt = f"""You are Nexus Workspace Assistant. Synthesize a concise 1-2 sentence executive brief summarizing key recent repository developments.
 Recent PRs:
 {pr_bullets or 'None'}
 
 Recent Commits:
 {commit_bullets or 'None'}
 """
-            res = await llm.ainvoke([SystemMessage(content="Be concise, professional and highlight key deliverables."), HumanMessage(content=prompt)])
+            res = await llm.ainvoke([SystemMessage(content="Be concise, professional and highlight key deliverables in 1-2 sentences."), HumanMessage(content=prompt)])
             summary = res.content
         except Exception as e:
             logger.warning("Failed to generate AI summary for Since You Were Away: %s", e)
-            summary = f"Since your last session, {len(prs)} pull request(s) and {len(commits)} commit(s) were recorded across your active repositories."
+            summary = f"Recent repository activity: {len(prs)} pull request(s) and {len(commits)} commit(s) recorded across your monitored repositories."
     else:
-        summary = "No new repository activity has occurred since your previous session."
+        summary = "No repository activity recorded yet. Connect and sync your repositories to track commits and PRs."
 
     return {
         "workspace_id": workspace_id,
@@ -633,6 +763,7 @@ Recent Commits:
         "recent_pull_requests": prs,
         "recent_commits": commits
     }
+
 
 
 # --- Task ↔ GitHub Suggestions Flow ---

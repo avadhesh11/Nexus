@@ -8,6 +8,8 @@ import { useWorkspaceStore } from "@/store/workspaceStore";
 import { Document } from "@/types";
 import { EmptyState } from "@/components/app/EmptyState";
 import { Spinner } from "@/components/app/Spinner";
+import { DocumentsSkeleton } from "@/components/app/LoadingScreen";
+
 import { formatRelative } from "@/lib/utils";
 import { Plus, FileText, Trash2 } from "lucide-react";
 
@@ -70,8 +72,7 @@ export default function DocumentsPage() {
     } catch (err) {
       console.error(err);
     }
-  };
-  if (isLoading && docs.length === 0) return <div className="flex items-center justify-center h-64"><Spinner className="w-5 h-5" /></div>;
+  if (isLoading && docs.length === 0) return <DocumentsSkeleton />;
 
   return (
     <div className="p-6 max-w-3xl">

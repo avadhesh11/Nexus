@@ -7,6 +7,8 @@ import { useAuthStore } from "@/store/authStore";
 import { useWorkspaceStore } from "@/store/workspaceStore";
 import api from "@/lib/api";
 import { Spinner } from "@/components/app/Spinner";
+import { DashboardSkeleton } from "@/components/app/LoadingScreen";
+
 import {
   Document,
   Task,
@@ -121,12 +123,9 @@ export default function DashboardPage() {
   const isLoading = (docsLoading && docs.length === 0) || (tasksLoading && tasks.length === 0);
 
   if (isLoading) {
-    return (
-      <div className="flex items-center justify-center h-64">
-        <Spinner className="w-5 h-5" />
-      </div>
-    );
+    return <DashboardSkeleton />;
   }
+
 
   return (
     <div className="p-6 max-w-7xl mx-auto space-y-6">

@@ -2,6 +2,7 @@ from fastapi import APIRouter, Depends, HTTPException, status
 from sqlalchemy.orm import Session
 import uuid
 import secrets
+import logging
 from datetime import datetime, timedelta, UTC
 
 from ..database import get_db
@@ -20,7 +21,10 @@ from ..dependencies import get_current_user
 from ..utils.supabase_client import supabase
 from ..models import Document, Task, GitHubPullRequest, GitHubCommit, GitHubRepository
 
+logger = logging.getLogger(__name__)
+
 router=APIRouter(prefix="/workspaces",tags=["workspaces"])
+
 def generate_invite_code() -> str:
     return secrets.token_urlsafe(8) 
 
@@ -427,7 +431,7 @@ def to_utc_dt(dt):
 # --- Recent Developments / Workspace Activity Feed (No LLM, Pure Fast Aggregation) ---
 
 @router.get("/{workspace_id}/activity", response_model=WorkspaceActivityResponse)
-def get_workspace_activity(
+async def get_workspace_activity(
     workspace_id: str,
     db: Session = Depends(get_db),
     current_user: User = Depends(get_current_user)
@@ -473,8 +477,9 @@ def get_workspace_activity(
         prs = []
         commits = []
         if repo_ids:
-            prs = db.query(GitHubPullRequest).filter(GitHubPullRequest.repository_id.in_(repo_ids)).order_by(GitHubPullRequest.created_at.desc()).limit(5).all()
-            commits = db.query(GitHubCommit).filter(GitHubCommit.repository_id.in_(repo_ids)).order_by(GitHubCommit.committed_at.desc()).limit(5).all()
+            prs = db.query(GitHubPullRequest).filter(GitHubPullRequest.repository_id.in_(repo_ids)).order_by(GitHubPullRequest.created_at.desc()).limit(8).all()
+            commits = db.query(GitHubCommit).filter(GitHubCommit.repository_id.in_(repo_ids)).order_by(GitHubCommit.committed_at.desc()).limit(12).all()
+
 
         # 5. Pre-fetch User Emails
         users = db.query(User).filter(User.id.in_(list(user_ids))).all() if user_ids else []
@@ -517,29 +522,47 @@ def get_workspace_activity(
                 created_at=to_utc_dt(t.updated_at or t.created_at)
             ))
 
-        # 6. Format Chat Messages from Supabase
+        # 6. Format Chat Messages from Supabase (Strict Privacy: only public channel msgs or DMs involving current_user)
         try:
             chat_res = supabase.table("messages")\
                 .select("*")\
                 .eq("workspace_id", workspace_id)\
+                .or_(f"recipient_id.is.null,recipient_id.eq.{current_user.id},sender_id.eq.{current_user.id}")\
                 .order("created_at", desc=True)\
-                .limit(10)\
+                .limit(15)\
                 .execute()
             if chat_res.data:
                 for msg in chat_res.data:
+                    rec_id = msg.get("recipient_id")
+                    is_dm = rec_id is not None
+                    sender_email = msg.get("sender_email", "Team member")
+                    sender_name = sender_email.split("@")[0]
+
+                    if is_dm:
+                        if str(msg.get("sender_id")) == str(current_user.id):
+                            action_title = "Direct Message (Sent)"
+                            title = "Private message sent"
+                        else:
+                            action_title = "Direct Message (Received)"
+                            title = f"DM from @{sender_name}"
+                    else:
+                        action_title = "Workspace Chat"
+                        title = f"Chat from @{sender_name}"
+
                     activities.append(WorkspaceActivityItem(
                         id=f"msg_{msg['id']}",
                         category="chat",
-                        action="Chat message",
-                        title=f"Chat from @{msg['sender_email'].split('@')[0]}",
-                        description=msg['content'][:90] + ("..." if len(msg['content']) > 90 else ""),
-                        actor_email=msg['sender_email'],
-                        target_id=str(msg['id']),
+                        action=action_title,
+                        title=title,
+                        description=msg.get("content", "")[:90] + ("..." if len(msg.get("content", "")) > 90 else ""),
+                        actor_email=sender_email,
+                        target_id=str(msg["id"]),
                         target_link="/dashboard/chat",
                         created_at=to_utc_dt(msg.get("created_at"))
                     ))
         except Exception as e:
             logger.warning(f"Failed to query chat activity: {e}")
+
 
         # Format member join activities
         for m in members:

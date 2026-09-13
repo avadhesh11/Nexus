@@ -90,7 +90,7 @@ async def get_installation_access_token(installation_id: str) -> str:
     app_jwt = get_github_app_jwt()
     url = f"https://api.github.com/app/installations/{installation_id}/access_tokens"
 
-    async with httpx.AsyncClient() as client:
+    async with httpx.AsyncClient(timeout=10.0) as client:
         res = await client.post(
             url,
             headers={
@@ -128,7 +128,7 @@ async def list_app_installations() -> list[dict]:
     app_jwt = get_github_app_jwt()
     url = "https://api.github.com/app/installations"
 
-    async with httpx.AsyncClient() as client:
+    async with httpx.AsyncClient(timeout=10.0) as client:
         res = await client.get(
             url,
             headers={
@@ -148,7 +148,7 @@ async def list_installation_repositories(installation_id: str) -> list[dict]:
     token = await get_installation_access_token(installation_id)
     url = "https://api.github.com/installation/repositories"
 
-    async with httpx.AsyncClient() as client:
+    async with httpx.AsyncClient(timeout=10.0) as client:
         res = await client.get(
             url,
             headers={
@@ -158,6 +158,7 @@ async def list_installation_repositories(installation_id: str) -> list[dict]:
             },
             params={"per_page": 100}
         )
+
 
         if res.status_code != 200:
             logger.error("Failed to list repositories for installation %s: %s", installation_id, res.text)
@@ -182,3 +183,53 @@ def verify_webhook_signature(payload_bytes: bytes, signature_header: str | None)
     computed_signature = mac.hexdigest()
 
     return hmac.compare_digest(computed_signature, expected_signature)
+
+
+async def fetch_repository_commits(installation_id: str, owner: str, repo: str, per_page: int = 30) -> list[dict]:
+    """Fetch recent commits from GitHub REST API using the installation token."""
+    token = await get_installation_access_token(installation_id)
+    url = f"https://api.github.com/repos/{owner}/{repo}/commits"
+
+    async with httpx.AsyncClient(timeout=10.0) as client:
+        res = await client.get(
+            url,
+            headers={
+                "Authorization": f"Bearer {token}",
+                "Accept": "application/vnd.github+json",
+                "User-Agent": "NexusAI-App"
+            },
+            params={"per_page": per_page}
+        )
+        if res.status_code != 200:
+            if res.status_code == 404:
+                logger.info("Repository %s/%s commits not accessible (404/not granted)", owner, repo)
+            else:
+                logger.warning("Failed to fetch commits for %s/%s: %s (%s)", owner, repo, res.status_code, res.text)
+            return []
+        return res.json()
+
+
+async def fetch_repository_pull_requests(installation_id: str, owner: str, repo: str, state: str = "all", per_page: int = 30) -> list[dict]:
+    """Fetch recent pull requests from GitHub REST API using the installation token."""
+    token = await get_installation_access_token(installation_id)
+    url = f"https://api.github.com/repos/{owner}/{repo}/pulls"
+
+    async with httpx.AsyncClient(timeout=10.0) as client:
+        res = await client.get(
+            url,
+            headers={
+                "Authorization": f"Bearer {token}",
+                "Accept": "application/vnd.github+json",
+                "User-Agent": "NexusAI-App"
+            },
+            params={"state": state, "per_page": per_page}
+        )
+        if res.status_code != 200:
+            if res.status_code == 404:
+                logger.info("Repository %s/%s PRs not accessible (404/not granted)", owner, repo)
+            else:
+                logger.warning("Failed to fetch pull requests for %s/%s: %s (%s)", owner, repo, res.status_code, res.text)
+            return []
+        return res.json()
+
+
