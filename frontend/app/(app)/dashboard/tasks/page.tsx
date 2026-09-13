@@ -7,6 +7,8 @@ import { useWorkspaceStore } from "@/store/workspaceStore";
 import { useAuthStore } from "@/store/authStore";
 import { Task, WorkspaceMemberDetail, WorkspaceSettings } from "@/types";
 import { Spinner } from "@/components/app/Spinner";
+import { TasksSkeleton } from "@/components/app/LoadingScreen";
+
 import {
   Plus,
   X,
@@ -329,12 +331,9 @@ export default function TasksPage() {
   };
 
   if (isLoading && tasks.length === 0) {
-    return (
-      <div className="flex items-center justify-center h-64">
-        <Spinner className="w-5 h-5 text-accent" />
-      </div>
-    );
+    return <TasksSkeleton />;
   }
+
 
   return (
     <div className="p-6 h-full flex flex-col max-w-7xl mx-auto space-y-5">
