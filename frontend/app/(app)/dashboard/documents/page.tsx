@@ -72,6 +72,8 @@ export default function DocumentsPage() {
     } catch (err) {
       console.error(err);
     }
+  };
+
   if (isLoading && docs.length === 0) return <DocumentsSkeleton />;
 
   return (
