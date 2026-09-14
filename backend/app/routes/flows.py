@@ -11,6 +11,7 @@ from ..database import get_db
 from ..models import (
     User,
     WorkspaceMember,
+    RoleEnum,
     Flow,
     FlowNode,
     FlowEdge,
@@ -218,7 +219,13 @@ def delete_flow(
     if not flow:
         raise HTTPException(status_code=404, detail="Flow not found")
 
-    check_workspace_membership(flow.workspace_id, current_user.id, db)
+    member = check_workspace_membership(flow.workspace_id, current_user.id, db)
+    is_admin = member.role == RoleEnum.admin or member.role == "admin" or str(getattr(member.role, "value", member.role)) == "admin"
+    is_creator = str(flow.created_by) == str(current_user.id)
+
+    if not (is_admin or is_creator):
+        raise HTTPException(status_code=403, detail="You are not authorized to delete this flow")
+
     db.delete(flow)
     db.commit()
     return {"message": "Flow deleted successfully"}

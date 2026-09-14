@@ -182,10 +182,17 @@ def connect_github_installation(
 @router.get("/integrations/github/repositories", response_model=list[GitHubRepositoryOut])
 async def get_repositories(
     workspace_id: str,
+    sync: bool = False,
     db: Session = Depends(get_db),
     current_user: User = Depends(get_current_user)
 ):
     check_workspace_membership(workspace_id, str(current_user.id), db)
+    if sync:
+        try:
+            return await sync_repositories(workspace_id, db, current_user)
+        except Exception as e:
+            logger.warning("Sync error in get_repositories: %s", e)
+
     repos = db.query(GitHubRepository).filter(
         GitHubRepository.workspace_id == workspace_id
     ).all()
@@ -717,16 +724,17 @@ async def get_since_you_were_away(
         GitHubCommit.committed_at >= since_time
     ).order_by(GitHubCommit.committed_at.desc()).limit(25).all()
 
-    # If no commits strictly since last seen, fallback to the latest commits & PRs
-    is_historical = False
-    if not prs and not commits and repo_ids:
+    # If no PRs strictly since last seen, fallback to the latest PRs
+    if not prs and repo_ids:
         prs = db.query(GitHubPullRequest).filter(
             GitHubPullRequest.repository_id.in_(repo_ids)
         ).order_by(GitHubPullRequest.created_at.desc()).limit(10).all()
+
+    # If no commits strictly since last seen, fallback to the latest commits
+    if not commits and repo_ids:
         commits = db.query(GitHubCommit).filter(
             GitHubCommit.repository_id.in_(repo_ids)
-        ).order_by(GitHubCommit.committed_at.desc()).limit(20).all()
-        is_historical = True
+        ).order_by(GitHubCommit.committed_at.desc()).limit(25).all()
 
     summary = ""
     if prs or commits:
@@ -755,7 +763,15 @@ Recent Commits:
 {commit_bullets or 'None'}
 """
                 res = await llm.ainvoke([SystemMessage(content="Be concise, professional and highlight key deliverables in 1-2 sentences."), HumanMessage(content=prompt)])
-                summary = res.content
+                raw_content = res.content
+                if isinstance(raw_content, list):
+                    summary = "".join([part.get("text", "") if isinstance(part, dict) else str(part) for part in raw_content]).strip()
+                else:
+                    summary = str(raw_content or "").strip()
+
+                if not summary:
+                    summary = f"Recent repository activity: {len(prs)} pull request(s) and {len(commits)} commit(s) recorded across your monitored repositories."
+
                 # Cache the fresh synthesis for this workspace
                 development_cache.set_cached_response(workspace_id, current_fingerprint, summary)
             except Exception as e:
