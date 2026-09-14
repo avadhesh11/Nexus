@@ -75,7 +75,6 @@ def get_messages(
 
     if recipient_id:
         # Direct Messages between current_user and recipient_id
-        # (sender = me AND recipient = other) OR (sender = other AND recipient = me)
         query = supabase.table("messages") \
             .select("*") \
             .eq("workspace_id", workspace_id) \
@@ -95,6 +94,27 @@ def get_messages(
             .limit(limit)
 
     result = query.execute()
-    return result.data
+    return result.data or []
 
-       
+@router.get("/{workspace_id}/inbox")
+def get_chat_inbox(
+    workspace_id: str,
+    limit: int = 200,
+    db: Session = Depends(get_db),
+    current_user: User = Depends(get_current_user)
+):
+    is_workspace_member(workspace_id, str(current_user.id), db)
+
+    query = supabase.table("messages") \
+        .select("*") \
+        .eq("workspace_id", workspace_id) \
+        .or_(
+            f"recipient_id.eq.{current_user.id},"
+            f"sender_id.eq.{current_user.id},"
+            f"recipient_id.is.null"
+        ) \
+        .order("created_at", desc=False) \
+        .limit(limit)
+
+    result = query.execute()
+    return result.data or []

@@ -2,7 +2,7 @@
 
 export const dynamic = "force-dynamic";
 
-import { useState, useEffect, useRef, useMemo } from "react";
+import { useState, useEffect, useRef, useMemo, useCallback } from "react";
 import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
 import api from "@/lib/api";
 import { supabase } from "@/lib/supabase";
@@ -11,18 +11,23 @@ import { useAuthStore } from "@/store/authStore";
 import { Message, WorkspaceMemberDetail, WorkspaceSettings } from "@/types";
 import { Avatar } from "@/components/app/Avatar";
 import { Spinner } from "@/components/app/Spinner";
-import { formatTime } from "@/lib/utils";
+import { formatTime, formatRelative } from "@/lib/utils";
 import {
   Send,
   Hash,
   User as UserIcon,
-  Shield,
   Search,
   Lock,
   MessageSquare,
   Users,
-  AlertCircle
+  AlertCircle,
 } from "lucide-react";
+
+interface LastMessageInfo {
+  content: string;
+  created_at: string;
+  isMe?: boolean;
+}
 
 export default function ChatPage() {
   const { currentWorkspace } = useWorkspaceStore();
@@ -32,9 +37,47 @@ export default function ChatPage() {
   // Active chat target: null = #general public room, string = recipient user_id for DM
   const [selectedRecipientId, setSelectedRecipientId] = useState<string | null>(null);
   const [memberSearch, setMemberSearch] = useState("");
-  const [liveMessages, setLiveMessages] = useState<Message[]>([]);
   const [input, setInput] = useState("");
   const bottomRef = useRef<HTMLDivElement>(null);
+
+  // Local state for instant optimistic messages & realtime stream
+  const [chatMessages, setChatMessages] = useState<Message[]>([]);
+
+  // Local storage key for tracking seen timestamps per conversation
+  const storageKey = useMemo(() => {
+    if (!currentWorkspace?.id || !user?.id) return null;
+    return `nexus_chat_last_seen_${currentWorkspace.id}_${user.id}`;
+  }, [currentWorkspace?.id, user?.id]);
+
+  // Load last seen map from localStorage
+  const [lastSeenMap, setLastSeenMap] = useState<Record<string, string>>(() => {
+    if (typeof window === "undefined" || !storageKey) return {};
+    try {
+      const saved = localStorage.getItem(storageKey);
+      return saved ? JSON.parse(saved) : {};
+    } catch {
+      return {};
+    }
+  });
+
+  // Persist last seen map updates
+  const markConversationAsSeen = useCallback(
+    (targetKey: string, timestamp?: string) => {
+      const seenTime = timestamp || new Date().toISOString();
+      setLastSeenMap((prev) => {
+        const updated = { ...prev, [targetKey]: seenTime };
+        if (typeof window !== "undefined" && storageKey) {
+          try {
+            localStorage.setItem(storageKey, JSON.stringify(updated));
+          } catch (e) {
+            console.error("Failed to save chat seen state:", e);
+          }
+        }
+        return updated;
+      });
+    },
+    [storageKey]
+  );
 
   // 1. Fetch Workspace Settings (to check settings_allow_dm)
   const { data: settings } = useQuery<WorkspaceSettings>({
@@ -51,43 +94,134 @@ export default function ChatPage() {
     staleTime: 30000,
   });
 
-  // 3. Fetch Initial Messages for current view (Public or DM)
-  const { data: initialMessages = [], isLoading } = useQuery<Message[]>({
+  // 3. Fetch Workspace Inbox for Unread Calculations & Last Message Metadata
+  const { data: inboxMessages = [] } = useQuery<Message[]>({
+    queryKey: ["chat-inbox", currentWorkspace?.id],
+    queryFn: async () => {
+      const res = await api.get(`/chat/${currentWorkspace?.id}/inbox?limit=200`);
+      return res.data || [];
+    },
+    enabled: !!currentWorkspace?.id,
+    refetchInterval: 15000,
+  });
+
+  // 4. Fetch Initial Messages for Current View (Public or DM)
+  const { data: serverMessages = [], isLoading } = useQuery<Message[]>({
     queryKey: ["messages", currentWorkspace?.id, selectedRecipientId],
     queryFn: async () => {
       const endpoint = selectedRecipientId
         ? `/chat/${currentWorkspace?.id}/messages?recipient_id=${selectedRecipientId}&limit=100`
         : `/chat/${currentWorkspace?.id}/messages?limit=100`;
       const res = await api.get(endpoint);
-      return res.data;
+      return res.data || [];
     },
     enabled: !!currentWorkspace?.id,
   });
 
-  // Reset live messages when chat target changes
+  // Sync server messages into local chatMessages state with robust deduplication
   useEffect(() => {
-    setLiveMessages([]);
-  }, [currentWorkspace?.id, selectedRecipientId]);
+    if (!serverMessages) return;
+    setChatMessages((prev) => {
+      // Keep optimistic messages that are not yet on the server
+      const pendingOptimistic = prev.filter(
+        (p) =>
+          p.id.startsWith("optimistic-") &&
+          !serverMessages.some(
+            (sm) =>
+              sm.content === p.content &&
+              sm.sender_id === p.sender_id &&
+              Math.abs(new Date(sm.created_at).getTime() - new Date(p.created_at).getTime()) < 10000
+          )
+      );
+      return [...serverMessages, ...pendingOptimistic];
+    });
+  }, [serverMessages]);
 
-  // Merge initial + realtime messages
-  const messages = useMemo(() => {
-    const initial = initialMessages || [];
-    const merged = [
-      ...initial,
-      ...liveMessages.filter((lm) => !initial.some((im) => im.id === lm.id)),
-    ];
+  // Whenever user switches conversation, mark as seen
+  useEffect(() => {
+    const targetKey = selectedRecipientId || "general";
+    markConversationAsSeen(targetKey);
+  }, [selectedRecipientId, markConversationAsSeen]);
 
-    return merged.sort(
-      (a, b) => new Date(a.created_at).getTime() - new Date(b.created_at).getTime()
-    );
-  }, [initialMessages, liveMessages]);
+  // Compute Unread Counts and Last Message info for each member and #general
+  const { unreadCounts, lastMessageMap, generalUnreadCount, totalUnreadDMs } = useMemo(() => {
+    const counts: Record<string, number> = {};
+    const lastMsg: Record<string, LastMessageInfo> = {};
+    let genUnread = 0;
+    let totalDMs = 0;
 
-  // Realtime subscription via Supabase
+    inboxMessages.forEach((m) => {
+      if (m.recipient_id) {
+        // Direct Message
+        if (m.recipient_id === user?.id) {
+          const senderId = m.sender_id;
+          const lastSeen = lastSeenMap[senderId];
+          const isCurrentlyOpen = selectedRecipientId === senderId;
+
+          const isUnread =
+            !isCurrentlyOpen &&
+            (!lastSeen || new Date(m.created_at).getTime() > new Date(lastSeen).getTime());
+
+          if (isUnread) {
+            counts[senderId] = (counts[senderId] || 0) + 1;
+          }
+
+          if (
+            !lastMsg[senderId] ||
+            new Date(m.created_at).getTime() > new Date(lastMsg[senderId].created_at).getTime()
+          ) {
+            lastMsg[senderId] = {
+              content: m.content,
+              created_at: m.created_at,
+              isMe: false,
+            };
+          }
+        } else if (m.sender_id === user?.id) {
+          const recipientId = m.recipient_id;
+          if (
+            !lastMsg[recipientId] ||
+            new Date(m.created_at).getTime() > new Date(lastMsg[recipientId].created_at).getTime()
+          ) {
+            lastMsg[recipientId] = {
+              content: m.content,
+              created_at: m.created_at,
+              isMe: true,
+            };
+          }
+        }
+      } else {
+        // Public Channel (#general)
+        if (m.sender_id !== user?.id) {
+          const lastSeenGen = lastSeenMap["general"];
+          const isCurrentlyOpen = selectedRecipientId === null;
+          const isUnread =
+            !isCurrentlyOpen &&
+            (!lastSeenGen || new Date(m.created_at).getTime() > new Date(lastSeenGen).getTime());
+          if (isUnread) {
+            genUnread += 1;
+          }
+        }
+      }
+    });
+
+    Object.values(counts).forEach((cnt) => {
+      totalDMs += cnt;
+    });
+
+    return {
+      unreadCounts: counts,
+      lastMessageMap: lastMsg,
+      generalUnreadCount: genUnread,
+      totalUnreadDMs: totalDMs,
+    };
+  }, [inboxMessages, user?.id, lastSeenMap, selectedRecipientId]);
+
+  // Realtime Supabase subscription with zero-duplicate reconciliation
   useEffect(() => {
     if (!currentWorkspace?.id) return;
 
     const channel = supabase
-      .channel(`chat-${currentWorkspace.id}-${selectedRecipientId || "public"}`)
+      .channel(`chat-workspace-${currentWorkspace.id}`)
       .on(
         "postgres_changes",
         {
@@ -99,20 +233,88 @@ export default function ChatPage() {
         (payload) => {
           const newMsg = payload.new as Message;
 
-          if (selectedRecipientId) {
-            // Check if this new message belongs to our 1-on-1 DM conversation
-            const isMyDM =
-              (newMsg.sender_id === user?.id && newMsg.recipient_id === selectedRecipientId) ||
-              (newMsg.sender_id === selectedRecipientId && newMsg.recipient_id === user?.id);
-            if (isMyDM) {
-              setLiveMessages((prev) => [...prev, newMsg]);
+          if (newMsg.recipient_id) {
+            const isForMe = newMsg.recipient_id === user?.id;
+            const isFromMe = newMsg.sender_id === user?.id;
+            const otherUserId = isFromMe ? newMsg.recipient_id : newMsg.sender_id;
+
+            // Update React Query cache for the conversation
+            qc.setQueryData<Message[]>(
+              ["messages", currentWorkspace.id, otherUserId],
+              (old = []) => {
+                if (old.some((m) => m.id === newMsg.id)) return old;
+                return [...old, newMsg];
+              }
+            );
+
+            if (selectedRecipientId) {
+              const isCurrentChat =
+                (isFromMe && newMsg.recipient_id === selectedRecipientId) ||
+                (isForMe && newMsg.sender_id === selectedRecipientId);
+
+              if (isCurrentChat) {
+                setChatMessages((prev) => {
+                  if (prev.some((m) => m.id === newMsg.id)) return prev;
+
+                  const optIndex = prev.findIndex(
+                    (m) =>
+                      m.id.startsWith("optimistic-") &&
+                      m.content === newMsg.content &&
+                      m.sender_id === newMsg.sender_id
+                  );
+
+                  if (optIndex !== -1) {
+                    const clone = [...prev];
+                    clone[optIndex] = newMsg;
+                    return clone;
+                  }
+
+                  return [...prev, newMsg];
+                });
+
+                if (isForMe) {
+                  markConversationAsSeen(selectedRecipientId, newMsg.created_at);
+                }
+              }
             }
           } else {
-            // Public room message
-            if (!newMsg.recipient_id) {
-              setLiveMessages((prev) => [...prev, newMsg]);
+            // Public Room event
+            qc.setQueryData<Message[]>(
+              ["messages", currentWorkspace.id, null],
+              (old = []) => {
+                if (old.some((m) => m.id === newMsg.id)) return old;
+                return [...old, newMsg];
+              }
+            );
+
+            if (selectedRecipientId === null) {
+              setChatMessages((prev) => {
+                if (prev.some((m) => m.id === newMsg.id)) return prev;
+
+                const optIndex = prev.findIndex(
+                  (m) =>
+                    m.id.startsWith("optimistic-") &&
+                    m.content === newMsg.content &&
+                    m.sender_id === newMsg.sender_id
+                );
+
+                if (optIndex !== -1) {
+                  const clone = [...prev];
+                  clone[optIndex] = newMsg;
+                  return clone;
+                }
+
+                return [...prev, newMsg];
+              });
+
+              if (newMsg.sender_id !== user?.id) {
+                markConversationAsSeen("general", newMsg.created_at);
+              }
             }
           }
+
+          // Refresh inbox summary quietly
+          qc.invalidateQueries({ queryKey: ["chat-inbox", currentWorkspace.id] });
         }
       )
       .subscribe();
@@ -120,43 +322,99 @@ export default function ChatPage() {
     return () => {
       supabase.removeChannel(channel);
     };
-  }, [currentWorkspace?.id, selectedRecipientId, user?.id]);
+  }, [currentWorkspace?.id, selectedRecipientId, user?.id, markConversationAsSeen, qc]);
 
   useEffect(() => {
     bottomRef.current?.scrollIntoView({ behavior: "smooth" });
-  }, [messages]);
+  }, [chatMessages]);
 
-  // Send Message Mutation
+  // Send Message Mutation with Instant Zero-Lag Optimistic Execution
   const sendMutation = useMutation({
-    mutationFn: (content: string) =>
+    mutationFn: (msgText: string) =>
       api.post(`/chat/${currentWorkspace?.id}/messages`, {
-        content,
+        content: msgText,
         recipient_id: selectedRecipientId || undefined,
       }),
     onSuccess: (res) => {
-      // Optimistically append sent message
-      setLiveMessages((prev) => {
-        if (prev.some((m) => m.id === res.data.id)) return prev;
-        return [...prev, res.data];
+      const serverMsg = res.data;
+      const targetRecipient = selectedRecipientId;
+
+      // Update React Query cache directly so message persists across conversation switches
+      qc.setQueryData<Message[]>(
+        ["messages", currentWorkspace?.id, targetRecipient],
+        (old = []) => {
+          if (old.some((m) => m.id === serverMsg.id)) return old;
+          return [...old, serverMsg];
+        }
+      );
+
+      // Reconcile optimistic placeholder with server response
+      setChatMessages((prev) => {
+        if (prev.some((m) => m.id === serverMsg.id)) return prev;
+
+        const optIndex = prev.findIndex(
+          (m) =>
+            m.id.startsWith("optimistic-") &&
+            m.content === serverMsg.content &&
+            m.sender_id === serverMsg.sender_id
+        );
+
+        if (optIndex !== -1) {
+          const clone = [...prev];
+          clone[optIndex] = serverMsg;
+          return clone;
+        }
+
+        return [...prev, serverMsg];
+      });
+
+      qc.invalidateQueries({
+        queryKey: ["messages", currentWorkspace?.id, targetRecipient],
       });
       qc.invalidateQueries({
-        queryKey: ["messages", currentWorkspace?.id, selectedRecipientId],
+        queryKey: ["chat-inbox", currentWorkspace?.id],
       });
     },
-    onError: (err: unknown) => {
+    onError: (err: unknown, msgText: string) => {
+      // Remove optimistic placeholder on failure
+      setChatMessages((prev) =>
+        prev.filter((m) => !(m.id.startsWith("optimistic-") && m.content === msgText))
+      );
+      setInput(msgText);
       const error = err as { response?: { data?: { detail?: string } } };
-      alert(error.response?.data?.detail || "Failed to send message");
+      alert(error.response?.data?.detail || "Failed to send message. Please try again.");
     },
   });
 
+  // Handle Instant Send (0ms perceived latency)
   const handleSend = () => {
-    if (!input.trim() || sendMutation.isPending) return;
-    sendMutation.mutate(input.trim());
+    const text = input.trim();
+    if (!text || sendMutation.isPending) return;
+
+    // 1. Create optimistic message immediately
+    const optimisticId = `optimistic-${Date.now()}-${Math.random().toString(36).substring(2, 7)}`;
+    const optimisticMessage: Message = {
+      id: optimisticId,
+      content: text,
+      workspace_id: currentWorkspace?.id || "",
+      sender_id: user?.id || "",
+      sender_email: user?.email || "me",
+      recipient_id: selectedRecipientId || null,
+      created_at: new Date().toISOString(),
+    };
+
+    // 2. Synchronously append to local chat stream
+    setChatMessages((prev) => [...prev, optimisticMessage]);
+
+    // 3. Clear input immediately
     setInput("");
+
+    // 4. Trigger server mutation
+    sendMutation.mutate(text);
   };
 
   const handleKeyDown = (e: React.KeyboardEvent<HTMLInputElement>) => {
-    if (e.key === "Enter") {
+    if (e.key === "Enter" && !e.shiftKey) {
       e.preventDefault();
       handleSend();
     }
@@ -173,6 +431,34 @@ export default function ChatPage() {
     );
   }, [otherMembers, memberSearch]);
 
+  // Dynamic Auto-Sorting:
+  // User with most pending/unseen messages is at the very top!
+  const sortedMembers = useMemo(() => {
+    return [...filteredMembers].sort((a, b) => {
+      const unreadA = unreadCounts[a.user_id] || 0;
+      const unreadB = unreadCounts[b.user_id] || 0;
+
+      // 1. Highest pending unread messages first (Descending)
+      if (unreadB !== unreadA) {
+        return unreadB - unreadA;
+      }
+
+      // 2. Most recent message time
+      const timeA = lastMessageMap[a.user_id]?.created_at
+        ? new Date(lastMessageMap[a.user_id].created_at).getTime()
+        : 0;
+      const timeB = lastMessageMap[b.user_id]?.created_at
+        ? new Date(lastMessageMap[b.user_id].created_at).getTime()
+        : 0;
+      if (timeB !== timeA) {
+        return timeB - timeA;
+      }
+
+      // 3. Fallback: Alphabetical
+      return a.email.localeCompare(b.email);
+    });
+  }, [filteredMembers, unreadCounts, lastMessageMap]);
+
   const selectedMember = useMemo(() => {
     if (!selectedRecipientId) return null;
     return members.find((m) => m.user_id === selectedRecipientId);
@@ -181,114 +467,190 @@ export default function ChatPage() {
   const isDMDisabled = settings?.settings_allow_dm === false;
 
   return (
-    <div className="flex h-full overflow-hidden bg-bg">
+    <div className="flex h-full overflow-hidden bg-[#09090f] text-[#e2e2ec]">
       {/* Channels & DMs Sidebar */}
-      <aside className="w-64 border-r border-[#1e1e2e] bg-[#0c0c14] flex flex-col flex-shrink-0">
-        {/* Header */}
-        <div className="p-3.5 border-b border-[#1e1e2e] flex items-center justify-between">
-          <div className="flex items-center gap-2">
-            <MessageSquare className="w-4 h-4 text-accent" />
-            <span className="font-display font-bold text-xs tracking-tight">Workspace Chat</span>
+      <aside className="w-72 border-r border-[#1a1a28] bg-[#0c0c16] flex flex-col flex-shrink-0 select-none">
+        {/* Workspace Title Header */}
+        <div className="p-4 border-b border-[#1a1a28] flex items-center justify-between bg-[#0e0e1a]/80 backdrop-blur-md">
+          <div className="flex items-center gap-2.5 min-w-0">
+            <div className="w-7 h-7 rounded-lg bg-gradient-to-tr from-accent/30 to-accent/10 border border-accent/30 flex items-center justify-center flex-shrink-0">
+              <MessageSquare className="w-3.5 h-3.5 text-accent" />
+            </div>
+            <div className="min-w-0">
+              <h2 className="font-display font-bold text-xs tracking-tight truncate text-white">
+                {currentWorkspace?.name || "Workspace"}
+              </h2>
+              <span className="text-[10px] text-[#60607a] font-mono block">
+                {members.length} member{members.length === 1 ? "" : "s"}
+              </span>
+            </div>
           </div>
-          <span className="text-[10px] text-[#5a5a7a] font-mono">{members.length} members</span>
         </div>
 
-        {/* Channel / DM List */}
-        <div className="flex-1 overflow-y-auto p-2 space-y-4">
+        {/* Channels & Direct Messages List */}
+        <div className="flex-1 overflow-y-auto px-3 py-3.5 space-y-5">
           {/* Public Channels */}
           <div>
-            <div className="text-[9px] text-[#5a5a7a] px-2.5 mb-1.5 font-mono tracking-wider uppercase flex items-center gap-1">
-              <Hash className="w-3 h-3" />
-              <span>Channels</span>
+            <div className="text-[10px] font-mono tracking-wider uppercase text-[#5a5a78] px-2 mb-1.5 flex items-center justify-between">
+              <span className="flex items-center gap-1.5 font-semibold">
+                <Hash className="w-3 h-3" />
+                <span>Channels</span>
+              </span>
+              {generalUnreadCount > 0 && selectedRecipientId !== null && (
+                <span className="px-1.5 py-0.5 text-[9px] font-bold font-mono bg-accent/20 border border-accent/40 text-accent rounded-full">
+                  {generalUnreadCount} new
+                </span>
+              )}
             </div>
+
             <button
               onClick={() => setSelectedRecipientId(null)}
-              className={`w-full flex items-center gap-2.5 px-2.5 py-2 rounded-lg text-xs transition-all text-left ${
+              className={`w-full flex items-center gap-2.5 px-3 py-2.2 rounded-xl text-xs transition-all text-left group ${
                 selectedRecipientId === null
-                  ? "bg-accent/15 border border-accent/30 text-white font-medium"
-                  : "text-[#9a9ab0] hover:bg-[#151522] hover:text-white border border-transparent"
+                  ? "bg-accent/15 border border-accent/30 text-white font-medium shadow-sm"
+                  : generalUnreadCount > 0
+                  ? "bg-[#141424] text-white hover:bg-[#1a1a2e] border border-accent/25"
+                  : "text-[#8a8a9e] hover:bg-[#141422] hover:text-white border border-transparent"
               }`}
             >
-              <Hash className={`w-3.5 h-3.5 ${selectedRecipientId === null ? "text-accent" : "text-[#5a5a7a]"}`} />
-              <div className="flex-1 truncate">
-                <span className="font-medium">general</span>
-                <span className="text-[10px] text-[#5a5a7a] block">Public workspace room</span>
+              <div
+                className={`w-6 h-6 rounded-lg flex items-center justify-center flex-shrink-0 transition-colors ${
+                  selectedRecipientId === null
+                    ? "bg-accent text-white shadow-[0_0_10px_rgba(91,138,255,0.4)]"
+                    : "bg-[#161626] text-[#6a6a84] group-hover:text-white"
+                }`}
+              >
+                <Hash className="w-3.5 h-3.5" />
+              </div>
+
+              <div className="flex-1 min-w-0">
+                <div className="flex items-center justify-between">
+                  <span className="font-medium text-xs truncate">general</span>
+                  {generalUnreadCount > 0 && selectedRecipientId !== null && (
+                    <span className="min-w-[18px] h-[18px] px-1.5 flex items-center justify-center text-[10px] font-bold font-mono text-white bg-accent rounded-full shadow-[0_0_8px_rgba(91,138,255,0.5)]">
+                      {generalUnreadCount}
+                    </span>
+                  )}
+                </div>
+                <span className="text-[10px] text-[#55556e] block truncate">
+                  Public workspace room
+                </span>
               </div>
             </button>
           </div>
 
-          {/* Direct Messages */}
+          {/* Direct Messages Section */}
           <div>
-            <div className="text-[9px] text-[#5a5a7a] px-2.5 mb-1.5 font-mono tracking-wider uppercase flex items-center justify-between">
-              <span className="flex items-center gap-1">
+            <div className="text-[10px] font-mono tracking-wider uppercase text-[#5a5a78] px-2 mb-2 flex items-center justify-between">
+              <span className="flex items-center gap-1.5 font-semibold">
                 <UserIcon className="w-3 h-3" />
-                Direct Messages
+                <span>Direct Messages</span>
               </span>
-              {isDMDisabled && (
-                <span className="text-[8px] text-[#ff6b6b] border border-[#ff6b6b]/30 px-1 rounded">
-                  Disabled
+              {totalUnreadDMs > 0 && (
+                <span className="px-1.5 py-0.5 text-[9px] font-bold font-mono bg-[#5b8aff] text-white rounded-full shadow-sm">
+                  {totalUnreadDMs}
                 </span>
               )}
             </div>
 
             {/* Member search if > 4 */}
             {otherMembers.length > 4 && (
-              <div className="px-1 mb-2">
-                <div className="flex items-center gap-2 px-2 py-1 rounded-lg bg-[#14141e] border border-[#1e1e2e] text-xs text-[#7a7a9a]">
-                  <Search className="w-3 h-3 text-[#5a5a7a]" />
+              <div className="mb-2 px-1">
+                <div className="flex items-center gap-2 px-2.5 py-1.5 rounded-lg bg-[#12121e] border border-[#1e1e30] focus-within:border-accent/40 text-xs text-[#8a8a9e]">
+                  <Search className="w-3.5 h-3.5 text-[#55556e]" />
                   <input
                     type="text"
                     placeholder="Find member..."
                     value={memberSearch}
                     onChange={(e) => setMemberSearch(e.target.value)}
-                    className="bg-transparent text-white placeholder-[#5a5a7a] outline-none text-[11px] w-full"
+                    className="bg-transparent text-white placeholder-[#55556e] outline-none text-xs w-full"
                   />
                 </div>
               </div>
             )}
 
             {isDMDisabled ? (
-              <div className="p-3 rounded-lg bg-[#ff6b6b]/5 border border-[#ff6b6b]/15 text-[11px] text-[#ff6b6b] flex items-start gap-2">
+              <div className="p-3 rounded-xl bg-[#ff6b6b]/5 border border-[#ff6b6b]/15 text-[11px] text-[#ff6b6b] flex items-start gap-2">
                 <Lock className="w-3.5 h-3.5 mt-0.5 flex-shrink-0" />
-                <span>1-on-1 personal chats are disabled by workspace admin.</span>
+                <span>Direct messaging is disabled by workspace admin.</span>
               </div>
-            ) : filteredMembers.length === 0 ? (
-              <div className="text-center py-4 text-[11px] text-[#5a5a7a]">
-                {memberSearch ? "No members found" : "Invite members to start 1-on-1 chats!"}
+            ) : sortedMembers.length === 0 ? (
+              <div className="text-center py-6 text-[11px] text-[#55556e]">
+                {memberSearch ? "No members found" : "Invite members to start private chats"}
               </div>
             ) : (
-              <div className="space-y-0.5">
-                {filteredMembers.map((m) => {
+              <div className="space-y-1">
+                {sortedMembers.map((m) => {
                   const isSelected = selectedRecipientId === m.user_id;
+                  const unreadCount = unreadCounts[m.user_id] || 0;
+                  const lastMsg = lastMessageMap[m.user_id];
 
                   return (
                     <button
                       key={m.user_id}
                       onClick={() => setSelectedRecipientId(m.user_id)}
-                      className={`w-full flex items-center gap-2.5 px-2.5 py-2 rounded-lg text-xs transition-all text-left ${
+                      className={`w-full flex items-center gap-2.5 px-3 py-2 rounded-xl text-xs transition-all text-left relative group ${
                         isSelected
-                          ? "bg-accent/15 border border-accent/30 text-white font-medium shadow-sm"
-                          : "text-[#9a9ab0] hover:bg-[#151522] hover:text-white border border-transparent"
+                          ? "bg-accent/15 border border-accent/10 text-white font-medium shadow-sm"
+                          : unreadCount > 0
+                          ? "bg-[#141426] border border-accent/10 text-white shadow-[0_0_10px_rgba(91,138,255,0.08)]"
+                          : "text-[#8a8a9e] hover:bg-[#141422] hover:text-white border border-transparent"
                       }`}
                     >
                       <div className="relative flex-shrink-0">
-                        <Avatar email={m.email} size={24} />
-                        <div className="w-2 h-2 rounded-full bg-emerald-500 absolute -bottom-0.5 -right-0.5 border border-[#0c0c14]" />
+                        <Avatar email={m.email} size={28} />
+                        {unreadCount > 0 ? (
+                          <span className="w-2.5 h-2.5 rounded-full bg-accent absolute -top-0.5 -right-0.5 border-2 border-[#0c0c16]" />
+                        ) : (
+                          <div className="w-2 h-2 rounded-full bg-emerald-500 absolute -bottom-0.5 -right-0.5 border border-[#0c0c16]" />
+                        )}
                       </div>
 
                       <div className="flex-1 min-w-0">
-                        <div className="flex items-center justify-between gap-1">
-                          <span className="truncate">{m.email.split("@")[0]}</span>
+                        <div className="flex items-center justify-between gap-1 mb-0.5">
+                          <span
+                            className={`truncate text-xs ${
+                              unreadCount > 0 ? "font-bold text-white" : "font-medium"
+                            }`}
+                          >
+                            {m.email.split("@")[0]}
+                          </span>
                           {m.role === "admin" && (
-                            <span className="text-[9px] px-1 py-0.2 rounded bg-[#ffaa00]/10 text-[#ffaa00] font-mono">
+                            <span className="text-[8px] px-1 py-0.2 rounded bg-[#ffaa00]/10 text-[#ffaa00] font-mono flex-shrink-0">
                               admin
                             </span>
                           )}
                         </div>
-                        <span className="text-[10px] text-[#5a5a7a] truncate block">
-                          {m.email}
-                        </span>
+
+                        <div className="flex items-center justify-between gap-1">
+                          <span
+                            className={`text-[10px] truncate block ${
+                              unreadCount > 0
+                                ? "text-accent font-medium"
+                                : "text-[#55556e]"
+                            }`}
+                          >
+                            {lastMsg
+                              ? (lastMsg.isMe ? "You: " : "") + lastMsg.content
+                              : m.email}
+                          </span>
+
+                          {lastMsg && !unreadCount && (
+                            <span className="text-[9px] text-[#4a4a62] font-mono flex-shrink-0">
+                              {formatRelative(lastMsg.created_at)}
+                            </span>
+                          )}
+                        </div>
                       </div>
+
+                      {/* Unread Badge */}
+                      {unreadCount > 0 && (
+                        <div className="flex-shrink-0 pl-1">
+                          <span className="min-w-[18px] h-[18px] px-1.5 flex items-center justify-center text-[10px] font-bold font-mono text-white bg-[#5b8aff] rounded-full shadow-[0_0_8px_rgba(91,138,255,0.6)]">
+                            {unreadCount > 99 ? "99+" : unreadCount}
+                          </span>
+                        </div>
+                      )}
                     </button>
                   );
                 })}
@@ -297,52 +659,57 @@ export default function ChatPage() {
           </div>
         </div>
 
-        {/* User Info Bar */}
-        <div className="p-3 border-t border-[#1e1e2e] bg-[#090910] flex items-center gap-2">
-          <Avatar email={user?.email || "Me"} size={26} />
+        {/* User Info Bar at bottom */}
+        <div className="p-3 border-t border-[#1a1a28] bg-[#090912] flex items-center gap-2.5">
+          <Avatar email={user?.email || "Me"} size={28} />
           <div className="flex-1 min-w-0">
-            <div className="text-xs font-semibold truncate">{user?.email?.split("@")[0]}</div>
+            <div className="text-xs font-semibold truncate text-white">
+              {user?.email?.split("@")[0]}
+            </div>
             <div className="text-[10px] text-accent flex items-center gap-1">
-              <div className="w-1.5 h-1.5 rounded-full bg-accent" />
-              <span>Online</span>
+              <div className="w-1.5 h-1.5 rounded-full bg-emerald-400" />
+              <span className="text-[#60607a]">Online</span>
             </div>
           </div>
         </div>
       </aside>
 
       {/* Main Chat Area */}
-      <div className="flex-1 flex flex-col h-full overflow-hidden">
-        {/* Header */}
-        <div className="border-b border-[#1e1e2e] px-5 py-3 flex items-center justify-between bg-[#0a0a12] flex-shrink-0">
+      <div className="flex-1 flex flex-col h-full overflow-hidden bg-[#09090f]">
+        {/* Chat Window Header */}
+        <div className="border-b border-[#1a1a28] px-6 py-3.5 flex items-center justify-between bg-[#0b0b14]/90 backdrop-blur-md flex-shrink-0">
           <div className="flex items-center gap-3">
             {selectedMember ? (
               <>
-                <Avatar email={selectedMember.email} size={30} />
+                <div className="relative">
+                  <Avatar email={selectedMember.email} size={34} />
+                  <div className="w-2.5 h-2.5 rounded-full bg-emerald-500 absolute -bottom-0.5 -right-0.5 border-2 border-[#0b0b14]" />
+                </div>
                 <div>
-                  <div className="text-sm font-semibold flex items-center gap-2">
+                  <div className="text-sm font-bold text-white flex items-center gap-2">
                     <span>{selectedMember.email}</span>
-                    <span className="text-[10px] font-mono px-1.5 py-0.5 rounded bg-[#1e1e2e] text-[#7a7a9a]">
+                    <span className="text-[10px] font-mono px-2 py-0.5 rounded-full bg-[#181828] text-[#8a8a9e] border border-[#222238]">
                       Direct Message
                     </span>
                   </div>
-                  <div className="text-[10px] text-[#5a5a7a] font-mono">
-                    Private communication • Role: {selectedMember.role}
+                  <div className="text-[10px] text-[#55556e] font-mono">
+                    Private conversation • Role: {selectedMember.role}
                   </div>
                 </div>
               </>
             ) : (
               <>
-                <div className="w-8 h-8 rounded-lg bg-accent/10 border border-accent/20 flex items-center justify-center text-accent">
+                <div className="w-9 h-9 rounded-xl bg-accent/15 border border-accent/25 flex items-center justify-center text-accent">
                   <Hash className="w-4 h-4" />
                 </div>
                 <div>
-                  <div className="text-sm font-semibold flex items-center gap-2">
+                  <div className="text-sm font-bold text-white flex items-center gap-2">
                     <span>general</span>
-                    <span className="text-[10px] font-mono px-1.5 py-0.5 rounded bg-accent/10 text-accent border border-accent/20">
+                    <span className="text-[10px] font-mono px-2 py-0.5 rounded-full bg-accent/10 text-accent border border-accent/20">
                       Public Room
                     </span>
                   </div>
-                  <div className="text-[10px] text-[#5a5a7a] font-mono">
+                  <div className="text-[10px] text-[#55556e] font-mono">
                     All workspace members can view and participate
                   </div>
                 </div>
@@ -351,71 +718,84 @@ export default function ChatPage() {
           </div>
 
           <div className="flex items-center gap-2">
-            <div className="text-[11px] font-mono text-[#5a5a7a] flex items-center gap-1.5 px-2.5 py-1 rounded border border-[#1e1e2e] bg-[#101018]">
-              <Users className="w-3 h-3 text-accent" />
+            <div className="text-[11px] font-mono text-[#60607a] flex items-center gap-1.5 px-3 py-1.2 rounded-lg border border-[#1e1e30] bg-[#10101c]">
+              <Users className="w-3.5 h-3.5 text-accent" />
               <span>{members.length} members</span>
             </div>
           </div>
         </div>
 
         {/* Message Stream */}
-        <div className="flex-1 overflow-y-auto px-5 py-4">
-          {isLoading && messages.length === 0 ? (
+        <div className="flex-1 overflow-y-auto px-6 py-5">
+          {isLoading && chatMessages.length === 0 ? (
             <div className="flex items-center justify-center h-64">
               <Spinner className="w-5 h-5 text-accent" />
             </div>
-          ) : messages.length === 0 ? (
-            <div className="text-center py-20 text-[#5a5a7a] animate-fade-up">
-              <div className="w-12 h-12 rounded-2xl bg-[#141420] border border-[#1e1e2e] flex items-center justify-center mx-auto mb-3">
-                {selectedMember ? <UserIcon className="w-6 h-6 text-accent" /> : <Hash className="w-6 h-6 text-accent" />}
+          ) : chatMessages.length === 0 ? (
+            <div className="text-center py-24 text-[#55556e] animate-fade-up max-w-sm mx-auto">
+              <div className="w-14 h-14 rounded-2xl bg-[#12121e] border border-[#1e1e30] flex items-center justify-center mx-auto mb-3 shadow-md">
+                {selectedMember ? (
+                  <UserIcon className="w-6 h-6 text-accent" />
+                ) : (
+                  <Hash className="w-6 h-6 text-accent" />
+                )}
               </div>
               <div className="text-sm font-semibold text-white mb-1">
-                {selectedMember ? `Start a direct conversation with ${selectedMember.email.split("@")[0]}` : "Welcome to #general"}
-              </div>
-              <p className="text-xs max-w-sm mx-auto text-[#7a7a9a]">
                 {selectedMember
-                  ? "Messages in this thread are private between you two."
-                  : "This is the workspace public channel for team discussions, announcements, and quick updates."}
+                  ? `Direct message with ${selectedMember.email.split("@")[0]}`
+                  : "Welcome to #general"}
+              </div>
+              <p className="text-xs text-[#7a7a96] leading-relaxed">
+                {selectedMember
+                  ? "Send a private message to start collaborating 1-on-1."
+                  : "This is the central public channel for team discussions and updates."}
               </p>
             </div>
           ) : (
-            <div className="flex flex-col gap-1 max-w-3xl mx-auto">
-              {messages.map((msg, i) => {
+            <div className="flex flex-col gap-1.5 max-w-3xl mx-auto">
+              {chatMessages.map((msg, i) => {
                 const isMe = msg.sender_id === user?.id;
-                const showHeader = i === 0 || messages[i - 1].sender_id !== msg.sender_id;
+                const isOptimistic = msg.id.startsWith("optimistic-");
+                const showHeader =
+                  i === 0 || chatMessages[i - 1].sender_id !== msg.sender_id;
 
                 return (
                   <div
                     key={msg.id}
-                    className={`flex gap-2.5 pt-1.5 ${
-                      i === messages.length - 1 ? "animate-fade-up" : ""
+                    className={`flex gap-3 pt-1 group transition-opacity ${
+                      isOptimistic ? "opacity-75" : "opacity-100"
                     }`}
                   >
-                    <div className="w-7 flex-shrink-0 mt-0.5">
+                    <div className="w-8 flex-shrink-0 mt-0.5">
                       {showHeader ? (
-                        <Avatar email={msg.sender_email} size={28} />
+                        <Avatar email={msg.sender_email} size={30} />
                       ) : (
-                        <div className="w-7" />
+                        <div className="w-8" />
                       )}
                     </div>
 
                     <div className="flex-1 min-w-0">
                       {showHeader && (
-                        <div className="flex items-baseline gap-2 mb-0.5">
+                        <div className="flex items-baseline gap-2 mb-1">
                           <span
                             className={`text-xs font-semibold ${
-                              isMe ? "text-accent" : "text-[#5b8aff]"
+                              isMe ? "text-accent" : "text-[#7ea6ff]"
                             }`}
                           >
                             {msg.sender_email.split("@")[0]}
                           </span>
-                          <span className="text-[10px] text-[#5a5a7a] font-mono">
+                          <span className="text-[10px] text-[#4a4a62] font-mono">
                             {formatTime(msg.created_at)}
                           </span>
                         </div>
                       )}
-                      <div className="text-xs leading-relaxed text-[#e0e0f0] bg-[#12121e]/40 px-2.5 py-1.5 rounded-lg border border-transparent hover:border-[#1e1e2e] transition-colors inline-block max-w-[90%] break-words">
+                      <div className="text-xs leading-relaxed text-[#dedee8] bg-[#121220]/70 px-3 py-2 rounded-xl border border-[#1a1a2e]/60 hover:border-[#262640] transition-colors inline-block max-w-[92%] break-words shadow-sm">
                         {msg.content}
+                        {isOptimistic && (
+                          <span className="text-[9px] text-[#55556e] font-mono ml-2 inline-flex items-center gap-0.5">
+                            <Spinner className="w-2.5 h-2.5 text-accent inline" /> sending...
+                          </span>
+                        )}
                       </div>
                     </div>
                   </div>
@@ -426,16 +806,16 @@ export default function ChatPage() {
           )}
         </div>
 
-        {/* Input Bar */}
-        <div className="p-4 border-t border-[#1e1e2e] bg-[#0a0a12] flex-shrink-0">
+        {/* Input Dock Bar */}
+        <div className="p-4 border-t border-[#1a1a28] bg-[#0b0b14] flex-shrink-0">
           {selectedRecipientId && isDMDisabled ? (
-            <div className="max-w-3xl mx-auto p-3 rounded-xl bg-[#ff6b6b]/10 border border-[#ff6b6b]/20 text-xs text-[#ff6b6b] flex items-center gap-2">
+            <div className="max-w-3xl mx-auto p-3.5 rounded-xl bg-[#ff6b6b]/10 border border-[#ff6b6b]/20 text-xs text-[#ff6b6b] flex items-center gap-2">
               <AlertCircle className="w-4 h-4 flex-shrink-0" />
               <span>Direct messaging has been disabled in this workspace by the administrator.</span>
             </div>
           ) : (
-            <div className="max-w-3xl mx-auto flex items-center gap-2">
-              <div className="flex-1 flex items-center gap-2 bg-[#12121e] border border-[#1e1e2e] focus-within:border-accent/50 rounded-xl px-3 py-2 transition-colors">
+            <div className="max-w-3xl mx-auto flex items-center gap-2.5">
+              <div className="flex-1 flex items-center gap-2 bg-[#121220] border border-[#1e1e32] focus-within:border-accent/60 focus-within:bg-[#141424] rounded-2xl px-4 py-2.5 transition-all shadow-inner">
                 <input
                   type="text"
                   value={input}
@@ -446,13 +826,17 @@ export default function ChatPage() {
                       ? `Message @${selectedMember.email.split("@")[0]}...`
                       : "Message #general..."
                   }
-                  className="flex-1 bg-transparent text-xs text-white placeholder-[#5a5a7a] outline-none"
+                  className="flex-1 bg-transparent text-xs text-white placeholder-[#55556e] outline-none"
                 />
               </div>
               <button
                 onClick={handleSend}
                 disabled={!input.trim() || sendMutation.isPending}
-                className="nexus-btn-primary p-2.5 rounded-xl disabled:opacity-30 disabled:cursor-not-allowed flex-shrink-0"
+                className={`p-3 rounded-2xl flex-shrink-0 transition-all ${
+                  input.trim()
+                    ? "bg-accent text-white shadow-[0_0_15px_rgba(91,138,255,0.4)] hover:brightness-110 active:scale-95 cursor-pointer"
+                    : "bg-[#141422] text-[#4a4a62] cursor-not-allowed border border-[#1e1e30]"
+                }`}
               >
                 <Send className="w-4 h-4" />
               </button>

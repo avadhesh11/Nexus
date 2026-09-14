@@ -428,7 +428,10 @@ def to_utc_dt(dt):
     return dt
 
 
-# --- Recent Developments / Workspace Activity Feed (No LLM, Pure Fast Aggregation) ---
+import json
+from ..utils.redis_client import get_redis_client
+
+# --- Recent Developments / Workspace Activity Feed (No LLM, Fast Aggregation with Redis Cache) ---
 
 @router.get("/{workspace_id}/activity", response_model=WorkspaceActivityResponse)
 async def get_workspace_activity(
@@ -447,6 +450,17 @@ async def get_workspace_activity(
     ).first()
     if not member and str(ws.owner_id) != str(current_user.id):
         raise HTTPException(status_code=403, detail="Not a workspace member")
+
+    # Check Redis cache first (15 second TTL)
+    cache_key = f"nexus:ws_activity:{workspace_id}:{current_user.id}"
+    redis_client = get_redis_client()
+    if redis_client:
+        try:
+            cached_raw = redis_client.get(cache_key)
+            if cached_raw:
+                return json.loads(cached_raw)
+        except Exception as e:
+            logger.debug("Redis activity cache read error: %s", e)
 
     activities: list[WorkspaceActivityItem] = []
     user_ids: set[uuid.UUID] = set()
@@ -614,8 +628,17 @@ async def get_workspace_activity(
     except Exception as e:
         logger.error(f"Error compiling workspace activity: {e}", exc_info=True)
 
-    return WorkspaceActivityResponse(
+    resp_obj = WorkspaceActivityResponse(
         workspace_id=ws.id,
         activities=activities[:30]
     )
+
+    if redis_client:
+        try:
+            redis_client.setex(cache_key, 15, resp_obj.model_dump_json() if hasattr(resp_obj, "model_dump_json") else resp_obj.json())
+        except Exception as e:
+            logger.debug("Failed to set Redis activity cache: %s", e)
+
+    return resp_obj
+
 

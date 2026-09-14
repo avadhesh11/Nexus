@@ -10,24 +10,24 @@ const config: Config = {
   theme: {
     extend: {
       colors: {
-        bg: "#0a0a0f",
-        surface: "#111118",
-        surface2: "#16161f",
-        "nexus-border": "#1e1e2e",
-        "nexus-border2": "#2a2a3e",
-        accent: "#7fffb2",
-        "accent-dim": "rgba(127,255,178,0.08)",
-        "accent-border": "rgba(127,255,178,0.2)",
+        bg: "var(--bg)",
+        surface: "var(--surface)",
+        surface2: "var(--surface2)",
+        "nexus-border": "var(--nexus-border)",
+        "nexus-border2": "var(--nexus-border2)",
+        accent: "var(--accent)",
+        "accent-dim": "var(--accent-dim)",
+        "accent-border": "var(--accent-border)",
         "nexus-blue": "#5b8aff",
         "nexus-red": "#ff6b6b",
         "nexus-yellow": "#ffd166",
-        "nexus-muted": "#5a5a7a",
-        "nexus-text": "#e8e8f0",
+        "nexus-muted": "var(--nexus-muted)",
+        "nexus-text": "var(--nexus-text)",
       },
       fontFamily: {
-        display: ["Syne", "sans-serif"],
-        body: ["DM Sans", "sans-serif"],
-        mono: ["DM Mono", "monospace"],
+        display: ["var(--font-syne)", "Syne", "sans-serif"],
+        body: ["var(--font-dm-sans)", "DM Sans", "sans-serif"],
+        mono: ["var(--font-dm-mono)", "DM Mono", "monospace"],
       },
       keyframes: {
         fadeUp: {

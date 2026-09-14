@@ -14,11 +14,6 @@ logger = logging.getLogger(__name__)
 
 router = APIRouter(prefix="/tasks", tags=["tasks"])
 
-# Ensure task_assignees table is created
-try:
-    Base.metadata.create_all(bind=engine)
-except Exception as e:
-    logger.warning(f"Could not auto-create task_assignees table: {e}")
 
 
 def check_workspace_member(workspace_id: str, user_id: str, db: Session) -> tuple[Workspace, WorkspaceMember]:

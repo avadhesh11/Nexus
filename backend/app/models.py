@@ -261,4 +261,89 @@ class InstallationLifecycleEvent(Base):
     occurred_at = Column(DateTime, default=lambda: datetime.now(UTC))
     payload_json = Column(JSON, nullable=False)
     handled_at = Column(DateTime, nullable=True)
+
+
+# --- Nexus Flow (Section 26: Workflow / Flowchart Canvas) Models ---
+
+class Flow(Base):
+    __tablename__ = "flows"
+
+    id = Column(UUID(as_uuid=True), primary_key=True, default=uuid.uuid4)
+    workspace_id = Column(UUID(as_uuid=True), ForeignKey("workspaces.id"), nullable=False, index=True)
+    title = Column(String, nullable=False, default="Untitled Workflow")
+    description = Column(String, nullable=True)
+    created_by = Column(UUID(as_uuid=True), ForeignKey("users.id"), nullable=False)
+    visibility = Column(String, default="workspace", nullable=False)  # workspace, private, link
+    created_at = Column(DateTime, default=lambda: datetime.now(UTC))
+    updated_at = Column(DateTime, default=lambda: datetime.now(UTC), onupdate=lambda: datetime.now(UTC))
+
+    # Relationships
+    workspace = relationship("Workspace")
+    creator = relationship("User")
+    nodes = relationship("FlowNode", back_populates="flow", cascade="all, delete-orphan")
+    edges = relationship("FlowEdge", back_populates="flow", cascade="all, delete-orphan")
+    comments = relationship("FlowComment", back_populates="flow", cascade="all, delete-orphan")
+    versions = relationship("FlowVersion", back_populates="flow", cascade="all, delete-orphan")
+
+
+class FlowNode(Base):
+    __tablename__ = "flow_nodes"
+
+    id = Column(UUID(as_uuid=True), primary_key=True, default=uuid.uuid4)
+    flow_id = Column(UUID(as_uuid=True), ForeignKey("flows.id", ondelete="CASCADE"), nullable=False, index=True)
+    node_key = Column(String, nullable=False, index=True)  # ReactFlow node ID
+    type = Column(String, default="default", nullable=False)  # trigger, action, decision, delay, note, custom
+    label = Column(String, nullable=False, default="New Step")
+    position_x = Column(Float, default=0.0, nullable=False)
+    position_y = Column(Float, default=0.0, nullable=False)
+    data_json = Column(JSON, default=dict, nullable=False)
+    linked_object_type = Column(String, nullable=True)  # task, document, meeting, github_pr
+    linked_object_id = Column(String, nullable=True)
+
+    flow = relationship("Flow", back_populates="nodes")
+
+
+class FlowEdge(Base):
+    __tablename__ = "flow_edges"
+
+    id = Column(UUID(as_uuid=True), primary_key=True, default=uuid.uuid4)
+    flow_id = Column(UUID(as_uuid=True), ForeignKey("flows.id", ondelete="CASCADE"), nullable=False, index=True)
+    edge_key = Column(String, nullable=False, index=True)  # ReactFlow edge ID
+    source_node_key = Column(String, nullable=False)
+    target_node_key = Column(String, nullable=False)
+    source_handle = Column(String, nullable=True)
+    target_handle = Column(String, nullable=True)
+    label = Column(String, nullable=True)
+    data_json = Column(JSON, default=dict, nullable=False)
+
+    flow = relationship("Flow", back_populates="edges")
+
+
+class FlowComment(Base):
+    __tablename__ = "flow_comments"
+
+    id = Column(UUID(as_uuid=True), primary_key=True, default=uuid.uuid4)
+    flow_id = Column(UUID(as_uuid=True), ForeignKey("flows.id", ondelete="CASCADE"), nullable=False, index=True)
+    node_key = Column(String, nullable=True)  # Nullable if comment is on the general canvas
+    user_id = Column(UUID(as_uuid=True), ForeignKey("users.id"), nullable=False)
+    text = Column(String, nullable=False)
+    created_at = Column(DateTime, default=lambda: datetime.now(UTC))
+
+    flow = relationship("Flow", back_populates="comments")
+    user = relationship("User")
+
+
+class FlowVersion(Base):
+    __tablename__ = "flow_versions"
+
+    id = Column(UUID(as_uuid=True), primary_key=True, default=uuid.uuid4)
+    flow_id = Column(UUID(as_uuid=True), ForeignKey("flows.id", ondelete="CASCADE"), nullable=False, index=True)
+    version_name = Column(String, nullable=False, default="Snapshot")
+    snapshot_json = Column(JSON, nullable=False)  # Full node & edge graph
+    created_by = Column(UUID(as_uuid=True), ForeignKey("users.id"), nullable=False)
+    created_at = Column(DateTime, default=lambda: datetime.now(UTC))
+
+    flow = relationship("Flow", back_populates="versions")
+    creator = relationship("User")
+
     

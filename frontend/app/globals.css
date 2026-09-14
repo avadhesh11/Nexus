@@ -1,87 +1,144 @@
-@import url('https://fonts.googleapis.com/css2?family=Syne:wght@400;600;700;800&family=DM+Sans:ital,opsz,wght@0,9..40,300;0,9..40,400;0,9..40,500;0,9..40,600;1,9..40,300&family=DM+Mono:wght@400;500&display=swap');
-
 @tailwind base;
 @tailwind components;
 @tailwind utilities;
 
 @layer base {
+  :root {
+    --bg: #f8fafc;
+    --surface: #ffffff;
+    --surface2: #f1f5f9;
+    --nexus-border: #e2e8f0;
+    --nexus-border2: #cbd5e1;
+    --accent: #10b981;
+    --accent-hover: #059669;
+    --accent-dim: rgba(16, 185, 129, 0.1);
+    --accent-border: rgba(16, 185, 129, 0.25);
+    --nexus-muted: #64748b;
+    --nexus-text: #0f172a;
+    --scrollbar-thumb: #cbd5e1;
+    --scrollbar-thumb-hover: #94a3b8;
+  }
+
+  .dark {
+    --bg: #0a0a0f;
+    --surface: #111118;
+    --surface2: #16161f;
+    --nexus-border: #1e1e2e;
+    --nexus-border2: #2a2a3e;
+    --accent: #7fffb2;
+    --accent-hover: #6be89e;
+    --accent-dim: rgba(127, 255, 178, 0.08);
+    --accent-border: rgba(127, 255, 178, 0.2);
+    --nexus-muted: #5a5a7a;
+    --nexus-text: #e8e8f0;
+    --scrollbar-thumb: #2a2a3e;
+    --scrollbar-thumb-hover: #3a3a5e;
+  }
+
   * { box-sizing: border-box; }
 
   html, body {
-    background-color: #0a0a0f;
-    color: #e8e8f0;
+    background-color: var(--bg);
+    color: var(--nexus-text);
     font-family: 'DM Sans', sans-serif;
     -webkit-font-smoothing: antialiased;
     -moz-osx-font-smoothing: grayscale;
+    transition: background-color 0.2s ease, color 0.2s ease;
   }
 
-  ::-webkit-scrollbar { width: 4px; height: 4px; }
+  ::-webkit-scrollbar { width: 5px; height: 5px; }
   ::-webkit-scrollbar-track { background: transparent; }
-  ::-webkit-scrollbar-thumb { background: #2a2a3e; border-radius: 99px; }
-  ::-webkit-scrollbar-thumb:hover { background: #3a3a5e; }
+  ::-webkit-scrollbar-thumb { background: var(--scrollbar-thumb); border-radius: 99px; }
+  ::-webkit-scrollbar-thumb:hover { background: var(--scrollbar-thumb-hover); }
 
-  ::selection { background: rgba(127,255,178,0.2); color: #e8e8f0; }
+  ::selection { background: var(--accent-dim); color: var(--nexus-text); }
 }
 
 @layer components {
   .grid-bg {
     background-image:
-      linear-gradient(rgba(127,255,178,0.025) 1px, transparent 1px),
-      linear-gradient(90deg, rgba(127,255,178,0.025) 1px, transparent 1px);
+      linear-gradient(var(--accent-dim) 1px, transparent 1px),
+      linear-gradient(90deg, var(--accent-dim) 1px, transparent 1px);
     background-size: 32px 32px;
   }
 
   .glass {
-    background: rgba(17,17,24,0.8);
+    background: var(--surface);
     backdrop-filter: blur(12px);
     -webkit-backdrop-filter: blur(12px);
   }
 
   .nexus-input {
-    @apply w-full bg-surface border border-[#1e1e2e] rounded-lg px-4 py-2.5 text-[#e8e8f0] text-sm font-body placeholder-[#5a5a7a] focus:outline-none focus:border-accent transition-colors duration-150;
+    @apply w-full bg-surface border border-nexus-border rounded-lg px-4 py-2.5 text-nexus-text text-sm font-body placeholder-nexus-muted focus:outline-none focus:border-accent transition-colors duration-150;
   }
 
   .nexus-btn-primary {
-    @apply inline-flex items-center gap-1.5 px-4 py-2 rounded-lg bg-accent text-black text-sm font-medium font-body cursor-pointer transition-all duration-150 hover:bg-[#6be89e] disabled:opacity-50 disabled:cursor-not-allowed border-0;
+    @apply inline-flex items-center justify-center gap-1.5 px-4 py-2 rounded-lg bg-accent text-black text-sm font-medium font-body cursor-pointer transition-all duration-150 hover:opacity-90 disabled:opacity-50 disabled:cursor-not-allowed border-0 shadow-sm;
   }
 
   .nexus-btn-ghost {
-    @apply inline-flex items-center gap-1.5 px-4 py-2 rounded-lg bg-transparent border border-[#1e1e2e] text-[#e8e8f0] text-sm font-body cursor-pointer transition-all duration-150 hover:border-[#2a2a3e] hover:bg-surface2;
+    @apply inline-flex items-center justify-center gap-1.5 px-4 py-2 rounded-lg bg-transparent border border-nexus-border text-nexus-text text-sm font-body cursor-pointer transition-all duration-150 hover:border-nexus-border2 hover:bg-surface2;
   }
 
   .nexus-btn-danger {
-    @apply inline-flex items-center gap-1.5 px-4 py-2 rounded-lg bg-red-500/10 border border-red-500/20 text-[#ff6b6b] text-sm font-body cursor-pointer transition-all duration-150 hover:bg-red-500/20;
+    @apply inline-flex items-center justify-center gap-1.5 px-4 py-2 rounded-lg bg-red-500/10 border border-red-500/20 text-[#ff6b6b] text-sm font-body cursor-pointer transition-all duration-150 hover:bg-red-500/20;
   }
 
   .nexus-card {
-    @apply bg-surface border border-[#1e1e2e] rounded-xl;
+    @apply bg-surface border border-nexus-border rounded-xl;
   }
 
   .sidebar-nav-item {
-    @apply w-full flex items-center gap-2 px-2.5 py-1.5 rounded-lg text-sm font-body text-[#5a5a7a] cursor-pointer transition-all duration-150 hover:bg-surface2 hover:text-[#e8e8f0] border-0 bg-transparent text-left;
+    @apply w-full flex items-center gap-2.5 px-2.5 py-2 rounded-lg text-sm font-body text-nexus-muted cursor-pointer transition-all duration-150 hover:bg-surface2 hover:text-nexus-text border-0 bg-transparent text-left;
   }
 
   .sidebar-nav-item.active {
-    @apply bg-[rgba(127,255,178,0.08)] text-accent;
+    @apply bg-accent-dim text-accent font-medium;
   }
 
   .badge-todo {
-    @apply inline-flex items-center px-2 py-0.5 rounded-full text-[10px] font-mono font-semibold tracking-wide uppercase border border-[#1e1e2e] text-[#5a5a7a];
+    @apply inline-flex items-center px-2 py-0.5 rounded-full text-[10px] font-mono font-semibold tracking-wide uppercase border border-nexus-border text-nexus-muted;
   }
   .badge-in-progress {
     @apply inline-flex items-center px-2 py-0.5 rounded-full text-[10px] font-mono font-semibold tracking-wide uppercase border border-[#5b8aff]/30 text-[#5b8aff] bg-[#5b8aff]/10;
   }
   .badge-done {
-    @apply inline-flex items-center px-2 py-0.5 rounded-full text-[10px] font-mono font-semibold tracking-wide uppercase border border-[rgba(127,255,178,0.2)] text-accent bg-[rgba(127,255,178,0.08)];
+    @apply inline-flex items-center px-2 py-0.5 rounded-full text-[10px] font-mono font-semibold tracking-wide uppercase border border-accent-border text-accent bg-accent-dim;
   }
   .badge-low {
-    @apply inline-flex items-center px-2 py-0.5 rounded-full text-[10px] font-mono font-semibold tracking-wide uppercase border border-[#1e1e2e] text-[#5a5a7a];
+    @apply inline-flex items-center px-2 py-0.5 rounded-full text-[10px] font-mono font-semibold tracking-wide uppercase border border-nexus-border text-nexus-muted;
   }
   .badge-medium {
     @apply inline-flex items-center px-2 py-0.5 rounded-full text-[10px] font-mono font-semibold tracking-wide uppercase border border-[#ffd166]/30 text-[#ffd166] bg-[#ffd166]/10;
   }
   .badge-high {
     @apply inline-flex items-center px-2 py-0.5 rounded-full text-[10px] font-mono font-semibold tracking-wide uppercase border border-[#ff6b6b]/30 text-[#ff6b6b] bg-[#ff6b6b]/10;
+  }
+}
+
+/* Light mode fallback mappings for hex utilities */
+html:not(.dark) {
+  .border-\[\#1e1e2e\] { border-color: var(--nexus-border) !important; }
+  .border-\[\#2a2a3e\] { border-color: var(--nexus-border2) !important; }
+  .text-\[\#e8e8f0\] { color: var(--nexus-text) !important; }
+  .text-\[\#5a5a7a\] { color: var(--nexus-muted) !important; }
+  .text-\[\#7a7a9a\] { color: #64748b !important; }
+  .text-\[\#a8a8c0\] { color: #475569 !important; }
+  .bg-\[\#111118\] { background-color: var(--surface) !important; }
+  .bg-\[\#16161f\] { background-color: var(--surface2) !important; }
+  .bg-\[\#0a0a0f\] { background-color: var(--bg) !important; }
+  .bg-\[\#0d0d1a\] { background-color: #f1f5f9 !important; }
+  .bg-zinc-900\/50, .bg-zinc-900\/60, .bg-zinc-900\/40, .bg-zinc-900\/80, .bg-zinc-900 {
+    background-color: var(--surface) !important;
+  }
+  .border-zinc-800, .border-zinc-800\/60, .border-zinc-800\/80, .border-zinc-700 {
+    border-color: var(--nexus-border) !important;
+  }
+  .text-zinc-200, .text-zinc-300, .text-zinc-400 {
+    color: #334155 !important;
+  }
+  .text-zinc-500 {
+    color: var(--nexus-muted) !important;
   }
 }
 
@@ -92,7 +149,7 @@
   font-family: 'DM Sans', sans-serif;
   font-size: 15px;
   line-height: 1.8;
-  color: #e8e8f0;
+  color: var(--nexus-text);
   font-weight: 300;
 }
 
@@ -102,19 +159,19 @@
 .ProseMirror h3 { font-family: 'Syne', sans-serif; font-size: 1.1rem; font-weight: 700; margin-bottom: 0.5rem; }
 .ProseMirror ul, .ProseMirror ol { padding-left: 1.5rem; margin-bottom: 0.75rem; }
 .ProseMirror li { margin-bottom: 0.25rem; }
-.ProseMirror blockquote { border-left: 3px solid #7fffb2; padding-left: 1rem; color: #5a5a7a; font-style: italic; }
-.ProseMirror code { background: #16161f; border: 1px solid #1e1e2e; padding: 0.1rem 0.4rem; border-radius: 4px; font-family: 'DM Mono', monospace; font-size: 0.85em; }
-.ProseMirror pre { background: #0d0d1a; border: 1px solid #1e1e2e; border-radius: 8px; padding: 1rem; margin-bottom: 1rem; overflow-x: auto; }
+.ProseMirror blockquote { border-left: 3px solid var(--accent); padding-left: 1rem; color: var(--nexus-muted); font-style: italic; }
+.ProseMirror code { background: var(--surface2); border: 1px solid var(--nexus-border); padding: 0.1rem 0.4rem; border-radius: 4px; font-family: 'DM Mono', monospace; font-size: 0.85em; }
+.ProseMirror pre { background: var(--surface2); border: 1px solid var(--nexus-border); border-radius: 8px; padding: 1rem; margin-bottom: 1rem; overflow-x: auto; }
 .ProseMirror pre code { background: none; border: none; padding: 0; }
-.ProseMirror hr { border: none; border-top: 1px solid #1e1e2e; margin: 1.5rem 0; }
-.ProseMirror strong { font-weight: 600; color: #e8e8f0; }
-.ProseMirror em { color: #a8a8c0; }
-.ProseMirror a { color: #7fffb2; text-decoration: underline; text-underline-offset: 3px; }
+.ProseMirror hr { border: none; border-top: 1px solid var(--nexus-border); margin: 1.5rem 0; }
+.ProseMirror strong { font-weight: 600; color: var(--nexus-text); }
+.ProseMirror em { color: var(--nexus-muted); }
+.ProseMirror a { color: var(--accent); text-decoration: underline; text-underline-offset: 3px; }
 
 .ProseMirror p.is-editor-empty:first-child::before {
   content: attr(data-placeholder);
   float: left;
-  color: #3a3a5a;
+  color: var(--nexus-muted);
   pointer-events: none;
   height: 0;
 }

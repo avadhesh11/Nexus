@@ -89,10 +89,14 @@ export default function DashboardPage() {
       ? activities
       : activities.filter((a) => a.category === activityFilter);
 
-  const todoTasks = tasks.filter((t) => t.status === "todo");
-  const inProgressTasks = tasks.filter((t) => t.status === "in_progress");
-  const doneTasks = tasks.filter((t) => t.status === "done");
-  const recentDocs = [...docs]
+  const messagesList = Array.isArray(messages) ? messages : [];
+  const docsList = Array.isArray(docs) ? docs : [];
+  const tasksList = Array.isArray(tasks) ? tasks : [];
+
+  const todoTasks = tasksList.filter((t) => t.status === "todo");
+  const inProgressTasks = tasksList.filter((t) => t.status === "in_progress");
+  const doneTasks = tasksList.filter((t) => t.status === "done");
+  const recentDocs = [...docsList]
     .sort((a, b) => new Date(b.updated_at).getTime() - new Date(a.updated_at).getTime())
     .slice(0, 4);
 
@@ -464,22 +468,22 @@ export default function DashboardPage() {
                   </button>
                 </div>
                 <div className="flex flex-col gap-2 mb-3">
-                  {messages.slice(-3).map((msg) => (
+                  {messagesList.slice(-3).map((msg) => (
                     <div key={msg.id} className="flex items-start gap-2">
                       <div className="w-5 h-5 rounded-full bg-accent/10 border border-accent/20 flex items-center justify-center flex-shrink-0 mt-0.5">
                         <span className="text-[9px] font-bold text-accent">
-                          {msg.sender_email[0].toUpperCase()}
+                          {(msg.sender_email?.[0] || "U").toUpperCase()}
                         </span>
                       </div>
                       <div className="flex-1 min-w-0">
                         <span className="text-[10px] text-[#5a5a7a] font-mono mr-1">
-                          @{msg.sender_email.split("@")[0]}:
+                          @{msg.sender_email ? msg.sender_email.split("@")[0] : "user"}:
                         </span>
                         <span className="text-xs text-[#e8e8f0] truncate">{msg.content}</span>
                       </div>
                     </div>
                   ))}
-                  {messages.length === 0 && (
+                  {messagesList.length === 0 && (
                     <div className="text-center py-4 text-[#5a5a7a] text-xs">
                       No chat messages yet.
                     </div>
