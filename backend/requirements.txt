@@ -105,6 +105,7 @@ python-jose==3.5.0
 python-multipart==0.0.28
 PyYAML==6.0.3
 realtime==2.30.0
+redis==5.2.1
 regex==2026.4.4
 requests==2.33.1
 requests-toolbelt==1.0.0
