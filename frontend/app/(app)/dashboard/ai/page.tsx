@@ -21,7 +21,6 @@ import {
   ChevronLeft,
   ChevronRight,
   Zap,
-  Clock,
   Search,
   Bot
 } from "lucide-react";

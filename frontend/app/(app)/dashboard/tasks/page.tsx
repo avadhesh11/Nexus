@@ -19,7 +19,6 @@ import {
   UserCheck,
   ShieldCheck,
   Check,
-  CheckCircle2,
 } from "lucide-react";
 import { formatDate } from "@/lib/utils";
 

@@ -2,7 +2,6 @@
 import Link from "next/link";
 import axios from "axios";
 import { useState, useEffect } from "react";
-import { useRouter } from "next/navigation";
 import api from "@/lib/api";
 import { useAuthStore } from "@/store/authStore";
 import { Spinner } from "@/components/app/Spinner";
@@ -10,7 +9,6 @@ import { Sparkles, Terminal, Activity, ArrowRight, Database } from "lucide-react
 
 export default function LandingPage() {
   const { user, setUser, logout } = useAuthStore();
-  const router = useRouter();
   const [checkingAuth, setCheckingAuth] = useState(true);
   const [apiStatus, setApiStatus] = useState<"checking" | "online" | "offline">("checking");
 

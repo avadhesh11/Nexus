@@ -12,7 +12,6 @@ import { formatDate } from "@/lib/utils";
 import {
   Shield,
   MessageSquare,
-  Sparkles,
   UploadCloud,
   Lock,
   Users,
@@ -20,11 +19,9 @@ import {
   Check,
   RefreshCw,
   Trash2,
-  AlertTriangle,
   Save,
   CheckCircle2,
   Zap,
-  UserPlus
 } from "lucide-react";
 
 export default function SettingsPage() {
@@ -49,7 +46,7 @@ export default function SettingsPage() {
   });
 
   // 2. Fetch Workspace Members
-  const { data: members = [], isLoading: loadingMembers } = useQuery<WorkspaceMemberDetail[]>({
+  const { data: members = [] } = useQuery<WorkspaceMemberDetail[]>({
     queryKey: ["workspace-members", currentWorkspace?.id],
     queryFn: () => api.get(`/workspaces/${currentWorkspace?.id}/members`).then((r) => r.data),
     enabled: !!currentWorkspace?.id,
@@ -72,7 +69,7 @@ export default function SettingsPage() {
       settings_allow_file_uploads: boolean;
       settings_restrict_invites: boolean;
     }) => api.patch(`/workspaces/${currentWorkspace?.id}/settings`, newSettings),
-    onSuccess: (res) => {
+    onSuccess: () => {
       qc.invalidateQueries({ queryKey: ["workspace-settings", currentWorkspace?.id] });
       setSuccessToast("Workspace settings saved successfully!");
       setTimeout(() => setSuccessToast(null), 3000);

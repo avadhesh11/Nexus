@@ -34,7 +34,6 @@ import {
   RefreshCw,
   UserPlus,
   GitBranch,
-  ShieldAlert,
   Clock,
 } from "lucide-react";
 

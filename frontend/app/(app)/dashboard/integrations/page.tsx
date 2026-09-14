@@ -102,7 +102,7 @@ export default function IntegrationsPage() {
       setInstallUrl(installRes.data.install_url);
       setConnectionStatus(statusRes.data);
 
-      // 2. If connected, fetch repositories & activity digest in parallel
+      // 2. If connected, fetch repositories & activity digest, then sync fresh activity in background
       if (statusRes.data.connected) {
         const [reposRes, digestRes] = await Promise.all([
           api.get(`/integrations/github/repositories?workspace_id=${currentWorkspace.id}`),
@@ -110,6 +110,14 @@ export default function IntegrationsPage() {
         ]);
         setRepositories(reposRes.data);
         setDigest(digestRes.data);
+
+        // Background auto-sync with GitHub to pull fresh commits/PRs
+        api.post(`/integrations/github/sync-activity?workspace_id=${currentWorkspace.id}`)
+          .then(async () => {
+            const freshDigest = await api.get(`/github/since-last-seen?workspace_id=${currentWorkspace.id}`);
+            setDigest(freshDigest.data);
+          })
+          .catch((syncErr) => console.log("Background activity sync notice:", syncErr));
       }
     } catch (err) {
       console.error("Failed to load GitHub integration data:", err);
