@@ -18,6 +18,8 @@ import {
   MarkerType,
   BackgroundVariant,
   ReactFlowProvider,
+  NodeTypes,
+  NodeProps,
 } from "@xyflow/react";
 import "@xyflow/react/dist/style.css";
 import { toPng } from "html-to-image";
@@ -86,7 +88,7 @@ const ICON_MAP: Record<string, React.ElementType> = {
 
 // --- Custom Nodes ---
 
-function TriggerNode({ data, selected }: { data: FlowNodeData; selected?: boolean }) {
+function TriggerNode({ data, selected }: NodeProps<Node<FlowNodeData>>) {
   const IconComponent = (data.icon && ICON_MAP[data.icon]) ? ICON_MAP[data.icon] : Play;
   return (
     <div
@@ -137,7 +139,7 @@ function TriggerNode({ data, selected }: { data: FlowNodeData; selected?: boolea
   );
 }
 
-function ActionNode({ data, selected }: { data: FlowNodeData; selected?: boolean }) {
+function ActionNode({ data, selected }: NodeProps<Node<FlowNodeData>>) {
   const IconComponent = (data.icon && ICON_MAP[data.icon]) ? ICON_MAP[data.icon] : Cpu;
   return (
     <div
@@ -200,7 +202,7 @@ function ActionNode({ data, selected }: { data: FlowNodeData; selected?: boolean
   );
 }
 
-function DecisionNode({ data, selected }: { data: FlowNodeData; selected?: boolean }) {
+function DecisionNode({ data, selected }: NodeProps<Node<FlowNodeData>>) {
   return (
     <div
       className={`relative px-4 py-3 rounded-2xl bg-zinc-900/95 border backdrop-blur-md shadow-xl transition-all duration-200 min-w-[210px] max-w-[270px] ${
@@ -258,7 +260,7 @@ function DecisionNode({ data, selected }: { data: FlowNodeData; selected?: boole
   );
 }
 
-function DelayNode({ data, selected }: { data: FlowNodeData; selected?: boolean }) {
+function DelayNode({ data, selected }: NodeProps<Node<FlowNodeData>>) {
   return (
     <div
       className={`relative px-4 py-3 rounded-2xl bg-zinc-900/95 border backdrop-blur-md shadow-xl transition-all duration-200 min-w-[190px] max-w-[240px] ${
@@ -279,9 +281,9 @@ function DelayNode({ data, selected }: { data: FlowNodeData; selected?: boolean 
         </div>
         <div className="flex-1 min-w-0">
           <span className="text-[10px] font-bold uppercase tracking-wider text-pink-400 block">
-            Wait / Delay
+            Delay / Pause
           </span>
-          <h4 className="text-xs font-semibold text-white truncate">{data.label || "Delay"}</h4>
+          <h4 className="text-xs font-semibold text-white truncate">{data.label || "Wait"}</h4>
         </div>
       </div>
 
@@ -298,27 +300,46 @@ function DelayNode({ data, selected }: { data: FlowNodeData; selected?: boolean 
   );
 }
 
-function NoteNode({ data, selected }: { data: FlowNodeData; selected?: boolean }) {
+function NoteNode({ data, selected }: NodeProps<Node<FlowNodeData>>) {
   return (
     <div
-      className={`relative p-4 rounded-2xl border shadow-xl transition-all duration-200 min-w-[220px] max-w-[280px] bg-amber-500/10 backdrop-blur-md ${
+      className={`relative px-4 py-3 rounded-2xl bg-amber-950/40 border backdrop-blur-md shadow-xl transition-all duration-200 min-w-[200px] max-w-[260px] ${
         selected
           ? "border-amber-400 ring-2 ring-amber-400/30 scale-[1.02]"
-          : "border-amber-400/40 hover:border-amber-400/70"
+          : "border-amber-400/40 hover:border-amber-400/80"
       }`}
     >
-      <div className="flex items-center gap-2 mb-2">
-        <StickyNote className="w-4 h-4 text-amber-300" />
-        <h4 className="text-xs font-bold text-amber-200 uppercase tracking-wide truncate">
-          {data.label || "Note"}
-        </h4>
+      <div className="flex items-center gap-2 mb-1.5 text-amber-400">
+        <StickyNote className="w-4 h-4" />
+        <h4 className="text-xs font-bold uppercase tracking-wider">{data.label || "Architecture Note"}</h4>
       </div>
-      <p className="text-xs text-amber-100/90 whitespace-pre-wrap leading-relaxed">
-        {data.description || "Add team notes or SOP rules here..."}
+
+      <p className="text-[11px] text-amber-200/80 leading-relaxed whitespace-pre-wrap">
+        {data.description || "Add architectural notes, RFC links or operational playbooks here."}
       </p>
+
+      <Handle
+        type="target"
+        position={Position.Top}
+        className="w-2.5 h-2.5 !bg-amber-400 !border !border-zinc-900 rounded-full"
+      />
+      <Handle
+        type="source"
+        position={Position.Bottom}
+        className="w-2.5 h-2.5 !bg-amber-400 !border !border-zinc-900 rounded-full"
+      />
     </div>
   );
 }
+
+const nodeTypesConfig: NodeTypes = {
+  trigger: TriggerNode,
+  action: ActionNode,
+  decision: DecisionNode,
+  delay: DelayNode,
+  note: NoteNode,
+  default: ActionNode,
+};
 
 // --- Main Flow Editor Component ---
 
@@ -362,17 +383,29 @@ function FlowCanvas() {
 
   const canvasRef = useRef<HTMLDivElement>(null);
 
-  const nodeTypes = useMemo(
-    () => ({
-      trigger: TriggerNode as any,
-      action: ActionNode as any,
-      decision: DecisionNode as any,
-      delay: DelayNode as any,
-      note: NoteNode as any,
-      default: ActionNode as any,
-    }),
-    []
-  );
+interface RawApiNode {
+  node_key: string;
+  type?: string;
+  position_x: number;
+  position_y: number;
+  label?: string;
+  data_json?: {
+    description?: string;
+    icon?: string;
+    color?: string;
+  };
+  linked_object_type?: string;
+  linked_object_id?: string;
+}
+
+interface RawApiEdge {
+  edge_key: string;
+  source_node_key: string;
+  target_node_key: string;
+  source_handle?: string;
+  target_handle?: string;
+  label?: string;
+}
 
   // Load Flow Data
   const loadFlow = useCallback(async () => {
@@ -387,7 +420,7 @@ function FlowCanvas() {
       });
 
       // Transform nodes
-      const loadedNodes: Node<FlowNodeData>[] = (data.nodes || []).map((n: any) => ({
+      const loadedNodes: Node<FlowNodeData>[] = (data.nodes || []).map((n: RawApiNode) => ({
         id: n.node_key,
         type: n.type || "action",
         position: { x: n.position_x, y: n.position_y },
@@ -402,7 +435,7 @@ function FlowCanvas() {
       }));
 
       // Transform edges
-      const loadedEdges: Edge[] = (data.edges || []).map((e: any) => ({
+      const loadedEdges: Edge[] = (data.edges || []).map((e: RawApiEdge) => ({
         id: e.edge_key,
         source: e.source_node_key,
         target: e.target_node_key,
@@ -537,7 +570,7 @@ function FlowCanvas() {
     setActiveDrawer("node_config");
   };
 
-  const handleUpdateSelectedNode = (key: keyof FlowNodeData, value: any) => {
+  const handleUpdateSelectedNode = (key: keyof FlowNodeData, value: FlowNodeData[keyof FlowNodeData]) => {
     if (!selectedNode) return;
     setNodes((nds) =>
       nds.map((n) => {
@@ -922,7 +955,7 @@ function FlowCanvas() {
             }}
             onConnect={onConnect}
             onNodeClick={handleNodeClick}
-            nodeTypes={nodeTypes}
+            nodeTypes={nodeTypesConfig}
             fitView
             className="bg-zinc-950"
           >

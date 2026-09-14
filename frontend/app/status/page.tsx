@@ -3,7 +3,6 @@
 import React, { useState, useEffect } from "react";
 import Link from "next/link";
 import { ArrowLeft, CheckCircle, AlertTriangle, Activity, Server, Database, Brain, RefreshCw } from "lucide-react";
-import axios from "axios";
 import api from "@/lib/api";
 interface ServiceStatus {
   name: string;
@@ -26,7 +25,6 @@ export default function StatusPage() {
   const checkHealth = async () => {
     setLoading(true);
     const start = Date.now();
-    const baseUrl = process.env.NEXT_PUBLIC_API_URL || "http://localhost:8000/api";
 
     
     try {

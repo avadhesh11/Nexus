@@ -1,7 +1,8 @@
 "use client";
 
-import { useEffect, useState } from "react";
+import { useState } from "react";
 import { useRouter } from "next/navigation";
+import { useQuery, useQueryClient } from "@tanstack/react-query";
 import { useWorkspaceStore } from "@/store/workspaceStore";
 import api from "@/lib/api";
 import {
@@ -14,11 +15,8 @@ import {
   AlertTriangle,
   Clock,
   Trash2,
-  Share2,
-  FileCode,
   Sparkles,
   Layers,
-  CheckCircle2,
   X
 } from "lucide-react";
 
@@ -71,35 +69,24 @@ const TEMPLATES = [
 
 export default function FlowsGalleryPage() {
   const router = useRouter();
+  const queryClient = useQueryClient();
   const { currentWorkspace } = useWorkspaceStore();
 
-  const [flows, setFlows] = useState<FlowItem[]>([]);
-  const [loading, setLoading] = useState(true);
+  const { data: flows = [], isLoading: loading } = useQuery<FlowItem[]>({
+    queryKey: ["flows", currentWorkspace?.id],
+    queryFn: () => api.get(`/flows/?workspace_id=${currentWorkspace?.id}`).then((r) => r.data || []),
+    enabled: !!currentWorkspace?.id,
+    staleTime: 60000,
+  });
+
   const [searchQuery, setSearchQuery] = useState("");
   const [showCreateModal, setShowCreateModal] = useState(false);
   const [selectedTemplate, setSelectedTemplate] = useState<string>("github_pr_triage");
   const [flowTitle, setFlowTitle] = useState("");
   const [flowDescription, setFlowDescription] = useState("");
-  const [flowVisibility, setFlowVisibility] = useState("workspace");
+  const flowVisibility = "workspace";
   const [creating, setCreating] = useState(false);
   const [deletingId, setDeletingId] = useState<string | null>(null);
-
-  useEffect(() => {
-    if (!currentWorkspace?.id) return;
-    fetchFlows();
-  }, [currentWorkspace?.id]);
-
-  const fetchFlows = async () => {
-    try {
-      setLoading(true);
-      const { data } = await api.get(`/flows/?workspace_id=${currentWorkspace?.id}`);
-      setFlows(data || []);
-    } catch (err) {
-      console.error("Failed to load flows:", err);
-    } finally {
-      setLoading(false);
-    }
-  };
 
   const handleCreateFlow = async (e: React.FormEvent) => {
     e.preventDefault();
@@ -115,6 +102,7 @@ export default function FlowsGalleryPage() {
         template: selectedTemplate
       });
 
+      queryClient.invalidateQueries({ queryKey: ["flows", currentWorkspace.id] });
       setShowCreateModal(false);
       setFlowTitle("");
       setFlowDescription("");
@@ -133,7 +121,7 @@ export default function FlowsGalleryPage() {
     try {
       setDeletingId(id);
       await api.delete(`/flows/${id}`);
-      setFlows((prev) => prev.filter((f) => f.id !== id));
+      queryClient.invalidateQueries({ queryKey: ["flows", currentWorkspace?.id] });
     } catch (err) {
       console.error("Failed to delete flow:", err);
     } finally {
