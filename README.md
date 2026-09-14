@@ -1,13 +1,15 @@
 # Nexus AI — The Unified Agentic Workspace
 
-> **Docs, real-time chat, interactive task boards, GitHub intelligence, and LangGraph agentic AI memory — unified into a single collaborative ecosystem.**
+> **Docs, real-time chat, interactive task boards, GitHub intelligence, collaborative workflow canvases, and LangGraph agentic AI memory — unified into a single collaborative ecosystem.**
 
 [![Next.js 14](https://img.shields.io/badge/Next.js-14_App_Router-black?style=flat-square&logo=next.js)](https://nextjs.org/)
 [![FastAPI](https://img.shields.io/badge/FastAPI-0.136-009688?style=flat-square&logo=fastapi)](https://fastapi.tiangolo.com/)
-[![Python](https://img.shields.io/badge/Python-3.11-3776AB?style=flat-square&logo=python)](https://python.org/)
+[![Python](https://img.shields.io/badge/Python-3.12-3776AB?style=flat-square&logo=python)](https://python.org/)
 [![TypeScript](https://img.shields.io/badge/TypeScript-5.0-3178C6?style=flat-square&logo=typescript)](https://typescriptlang.org/)
 [![LangGraph](https://img.shields.io/badge/LangGraph-Agentic_AI-FF6F00?style=flat-square&logo=langchain)](https://langchain-ai.github.io/langgraph/)
 [![Google Gemini](https://img.shields.io/badge/Gemini-2.5_Flash-4285F4?style=flat-square&logo=google)](https://deepmind.google/technologies/gemini/)
+[![Redis](https://img.shields.io/badge/Redis-7_Cache-DC382D?style=flat-square&logo=redis)](https://redis.io/)
+[![React Flow](https://img.shields.io/badge/React_Flow-Canvas-FF0072?style=flat-square&logo=react)](https://reactflow.dev/)
 [![Supabase](https://img.shields.io/badge/Supabase-PostgreSQL_&_Realtime-3ECF8E?style=flat-square&logo=supabase)](https://supabase.com/)
 [![pgvector](https://img.shields.io/badge/pgvector-Vector_Search-336791?style=flat-square&logo=postgresql)](https://github.com/pgvector/pgvector)
 [![Docker](https://img.shields.io/badge/Docker-Containerized-2496ED?style=flat-square&logo=docker)](https://docker.com/)
@@ -16,15 +18,32 @@
 
 ## 🌟 Overview
 
-**Nexus AI** is an enterprise-grade collaborative workspace that treats AI not as an external chatbot, but as an **active, autonomous team member** with complete contextual awareness over your team's documents, tasks, discussions, and code repositories.
+**Nexus AI** is an enterprise-grade collaborative workspace that treats AI not as an external chatbot, but as an **active, autonomous team member** with complete contextual awareness over your team's documents, tasks, discussions, workflow diagrams, and code repositories.
 
-Built on a **ReAct Agentic LangGraph Architecture** and **pgvector RAG**, Nexus AI can autonomously query documentation, manage project task boards, send automated email alerts, summarize GitHub pushes, and correlate pull requests to open tasks.
+Built on a **ReAct Agentic LangGraph Architecture**, **pgvector RAG**, **Redis Caching**, and **Nexus Flow Canvas**, Nexus AI autonomously queries documentation, manages project task boards, sends automated email alerts, summarizes GitHub pushes, correlates pull requests to open tasks, and visualizes complex team workflows.
 
 ---
 
 ## 🚀 Key Feature Highlights
 
-### 🧠 1. LangGraph Agentic AI Assistant
+### 🌊 1. Nexus Flow — Collaborative Workflow & Flowchart Canvas
+- **Visual Node-Based Canvas**: Powered by `@xyflow/react` for designing workflows, architecture diagrams, and pipeline logic.
+- **Custom Modular Node Types**:
+  - **Trigger Node (Purple)**: Webhook, cron schedules, GitHub events, and automated entry points.
+  - **Action Node (Blue)**: Task execution, API triggers, notifications, and CI/CD steps.
+  - **Decision Gate (Amber)**: Branching condition gates with Pass/Fail pathways.
+  - **Wait / Delay Marker (Pink)**: Timers, approval pauses, and soak test delays.
+  - **Sticky Notes (Yellow)**: Team notes and SOP documentation cards.
+- **Shared Memory Object Linking**: Link any canvas node directly to workspace **Tasks** (`/tasks`) or **Documents** (`/documents`) with direct navigation.
+- **Gemini 2.5 Flash AI Flow Explainer**: 1-click AI synthesis analyzing triggers, execution pathways, bottlenecks, and automated SOP generation.
+- **Version Snapshots & Rollback**: Save point-in-time graph snapshots with instant 1-click restoration.
+- **Asynchronous In-Canvas Comments**: Discuss architecture directly on canvas nodes with teammate email attributions.
+- **High-Resolution Export**: Export diagrams as high-resolution PNG images or download reusable JSON Blueprints.
+- **Configurable Permissions**: Toggle between **Workspace Shared** (visible to all members) and **Private** (creator & admins only).
+
+---
+
+### 🧠 2. LangGraph Agentic AI Assistant
 - **ReAct Execution Engine**: Built with LangGraph `create_react_agent` and Google Gemini 2.5 Flash for multi-step reasoning and autonomous tool invocation.
 - **Role-Aware Dynamic Tool Bindings**:
   - **Knowledge Search (`search_workspace`)**: Semantic similarity search over vectorized workspace documents.
@@ -37,17 +56,26 @@ Built on a **ReAct Agentic LangGraph Architecture** and **pgvector RAG**, Nexus 
 
 ---
 
-### 🐙 2. GitHub Intelligence Hub & Webhook Gateway
+### ⚡ 3. High-Performance Redis Caching & Zero-Cost Architecture
+- **Sub-Millisecond Read Caching**: Redis-backed cache for high-frequency activity polling (`/workspaces/{id}/activity`), reducing DB load by up to 80%.
+- **LLM Development Fingerprint Cache**: SHA256 hashing in `development_cache.py` to skip redundant LLM inference (0ms latency, $0 token cost).
+- **Automatic In-Memory Fallback**: Seamless local in-memory fallback if Redis is temporarily offline.
+- **Zero-Blocking Next.js Fonts**: Pre-optimized typography using `next/font/google` (`Syne`, `DM Sans`, `DM Mono`).
+- **Parallelized Auth/Workspace Initialization**: Eliminated loading screen waterfalls with concurrent `Promise.all` fetching.
+
+---
+
+### 🐙 4. GitHub Intelligence Hub & Webhook Gateway
 - **GitHub App Integration**: Authenticated via RS256 Private Key JWT and short-lived installation access tokens.
 - **Security & Webhook Gateway**: HMAC-SHA256 signature verification and idempotency handling for `push`, `pull_request`, and `installation` events.
-- **Direct REST API Fallback Sync**: High-speed fallback synchronization directly querying GitHub REST APIs for instant localhost development.
+- **Lifecycle Event Handling**: Detects and reacts to installation suspension, revocation, and repo transfers.
 - **"Since You Were Away" Executive AI Digest**: Gemini-powered activity synthesis summarizing pushes, PRs, and branch changes since your previous login.
 - **Task ↔ PR Heuristic Correlation**: Automated semantic correlation linking pull requests to open tasks with single-click task resolution.
 - **Live Commits & PRs Stream**: Real-time activity timeline with commit SHA badges, branch tracking, and direct GitHub links.
 
 ---
 
-### 📋 3. Interactive Drag-and-Drop Task Board
+### 📋 5. Interactive Drag-and-Drop Task Board
 - **Kanban Workflow**: Drag-and-drop cards between **Todo**, **In Progress**, and **Done** columns with optimistic UI updates.
 - **Multi-Assignee Support**: Assign tasks to multiple workspace members simultaneously.
 - **Automated Email Alerts**: Optional instant email dispatch to assignees upon task assignment.
@@ -55,21 +83,21 @@ Built on a **ReAct Agentic LangGraph Architecture** and **pgvector RAG**, Nexus 
 
 ---
 
-### 💬 4. Real-Time Chat & Strict-Privacy Direct Messaging
+### 💬 6. Real-Time Chat & Strict-Privacy Direct Messaging
 - **Real-Time Messaging**: Powered by Supabase Realtime WebSocket broadcasting with presence tracking.
 - **Strict Privacy Direct Messaging (DMs)**: Dedicated private DM channels with strict database-level filtering — direct messages are strictly concealed from third-party workspace members.
 - **Admin DM Controls**: Workspace admins can toggle direct messaging permissions workspace-wide.
 
 ---
 
-### 📄 5. Document Management & pgvector Semantic RAG
+### 📄 7. Document Management & pgvector Semantic RAG
 - **Rich Document Editor**: Block-based TipTap editor with automated persistence.
 - **Multi-Format Ingestion**: Upload PDF (`PyMuPDF`), Word (`python-docx`), TXT, Markdown, CSV, and Excel documents.
 - **Vector Search Engine**: Automated 500-word overlapping text chunking embedded into 768-dimensional vectors with Google `text-embedding-004` and indexed in PostgreSQL via `pgvector`.
 
 ---
 
-### 🏢 6. Multi-Tenant Workspaces & Role Hierarchy
+### 🏢 8. Multi-Tenant Workspaces & Role Hierarchy
 - **Multi-Tenant Isolation**: Switch between isolated workspaces seamlessly.
 - **Expiring Invite Links**: 7-day secure invite codes with owner-controlled code regeneration.
 - **Admin Workspace Settings**:
@@ -85,45 +113,20 @@ Built on a **ReAct Agentic LangGraph Architecture** and **pgvector RAG**, Nexus 
 ```
 ┌─────────────────────────────────────────────────────────────────────────────┐
 │                           Client (Next.js 14)                               │
-│     Zustand (Global State) ── TanStack Query (Caching) ── Lucide / UI       │
+│  Zustand (Global State) ── TanStack Query (Caching) ── React Flow Canvas    │
 └──────────────────────────────────────┬──────────────────────────────────────┘
                                        │ HTTP / WebSocket
 ┌──────────────────────────────────────▼──────────────────────────────────────┐
 │                           FastAPI Backend                                   │
-│  Auth ── Workspaces ── Tasks ── Documents ── GitHub Hub ── LangGraph AI     │
-└───────┬──────────────────────────────┬───────────────────────────────┬──────┘
-        │                              │                               │
-┌───────▼──────────────┐   ┌───────────▼───────────┐      ┌────────────▼────────────┐
-│ PostgreSQL (Supabase)│   │  LangGraph + Gemini   │      │       GitHub API        │
-│ ├── Relational Data  │   │ ├── ReAct Agent Loop  │      │ ├── Webhook Gateway     │
-│ ├── pgvector Search  │   │ ├── Autonomous Tools  │      │ ├── Installation Tokens │
-│ └── Realtime Chat    │   │ └── LangSmith Tracing │      │ └── Commit / PR Sync    │
-└──────────────────────┘   └───────────────────────┘      └─────────────────────────┘
-```
-
-### 🤖 LangGraph Agentic AI Loop
-
-```
-User Prompt (e.g., "What tasks are due this week and what did we discuss about auth?")
-                             │
-                             ▼
-               LangGraph ReAct Agent Node
-                             │
-            ┌────────────────┴────────────────┐
-            │ Autonomous Tool Selection       │
-            ▼                                 ▼
-   [search_workspace]                   [get_tasks]
-            │                                 │
-            ▼                                 ▼
-   Query pgvector RAG                Fetch Active Tasks
-            │                                 │
-            └────────────────┬────────────────┘
-                             │
-                             ▼
-              Gemini 2.5 Flash Synthesis
-                             │
-                             ▼
-         Action Output + Tool Audit Telemetry
+│  Auth ── Workspaces ── Tasks ── Docs ── Flows ── GitHub Hub ── LangGraph AI │
+└───────┬──────────────────────┬──────────────┬────────────────┬──────────────┘
+        │                      │              │                │
+┌───────▼──────────────┐ ┌─────▼─────┐ ┌──────▼──────┐  ┌──────▼────────┐
+│ PostgreSQL (Supabase)│ │   Redis   │ │  LangGraph  │  │  GitHub API   │
+│ ├── Relational Data  │ │ ├── Cache │ │ ├── ReAct   │  │ ├── Webhooks  │
+│ ├── pgvector Search  │ │ └── Queues│ │ └── Gemini  │  │ └── Token Auth│
+│ └── Realtime Chat    │ └───────────┘ └─────────────┘  └───────────────┘
+└──────────────────────┘
 ```
 
 ---
@@ -132,8 +135,9 @@ User Prompt (e.g., "What tasks are due this week and what did we discuss about a
 
 | Layer | Technologies |
 |---|---|
-| **Frontend** | Next.js 14 (App Router), TypeScript, Tailwind CSS, Lucide Icons, Zustand, TanStack Query, TipTap |
+| **Frontend** | Next.js 14 (App Router), TypeScript, Tailwind CSS, Lucide Icons, `@xyflow/react`, `html-to-image`, Zustand, TanStack Query, TipTap |
 | **Backend API** | FastAPI, SQLAlchemy ORM, Pydantic v2, Uvicorn, Python-JOSE, Passlib (Bcrypt) |
+| **Cache & Performance** | Redis 7, Connection Pooling, SHA256 Fingerprint Caching, `next/font/google` |
 | **Agentic AI & RAG** | LangGraph, LangChain, Google Gemini 2.5 Flash, Google `text-embedding-004`, LangSmith |
 | **Database & Realtime** | PostgreSQL, pgvector extension, Supabase Storage, Supabase Realtime WebSockets |
 | **Integrations** | GitHub REST API, GitHub Apps (RS256 JWT Auth), HMAC-SHA256 Webhooks, SMTP Mailer |
@@ -145,8 +149,8 @@ User Prompt (e.g., "What tasks are due this week and what did we discuss about a
 
 ### Prerequisites
 - **Node.js 20+**
-- **Python 3.11+**
-- **Docker Desktop** (Optional, for containerized run)
+- **Python 3.11+ / 3.12**
+- **Docker Desktop** (For Redis & containerized run)
 - **Supabase Project** (Database, Auth, and Storage)
 - **Google AI Studio API Key** ([Get free key](https://aistudio.google.com/))
 
@@ -220,6 +224,9 @@ JWT_SECRET=your-super-secret-jwt-key
 JWT_ALGORITHM=HS256
 JWT_EXPIRE_MINUTES=10080
 
+# Redis Caching (Local Docker or Upstash Cloud)
+REDIS_URL=redis://localhost:6379/0
+
 # Supabase
 SUPABASE_URL=https://[your-ref].supabase.co
 SUPABASE_SERVICE_KEY=your-supabase-service-role-key
@@ -246,7 +253,7 @@ SMTP_PASS=your-gmail-app-password
 
 #### Frontend (`frontend/.env.local`)
 ```env
-NEXT_PUBLIC_API_URL=http://localhost:8000/api
+NEXT_PUBLIC_API_URL=http://localhost:8000
 NEXT_PUBLIC_SUPABASE_URL=https://[your-ref].supabase.co
 NEXT_PUBLIC_SUPABASE_ANON_KEY=your-supabase-anon-key
 ```
@@ -255,18 +262,31 @@ NEXT_PUBLIC_SUPABASE_ANON_KEY=your-supabase-anon-key
 
 ### 4. Running Locally
 
-#### Run with Docker Compose (Recommended)
+#### Start Redis:
 ```bash
-docker-compose up --build
+# Start standalone Redis container
+docker run -d -p 6379:6379 --name nexus-redis redis:7-alpine
+
+# Or if container already exists:
+docker start nexus-redis
 ```
 
-#### Run Manually
+#### Run with Docker Compose:
+```bash
+docker compose up --build
+```
+
+#### Run Manually:
 
 **Start Backend:**
 ```bash
 cd backend
 python -m venv venv
-source venv/bin/activate  # On Windows: venv\Scripts\activate
+# On Windows:
+venv\Scripts\activate
+# On macOS/Linux:
+source venv/bin/activate
+
 pip install -r requirements.txt
 python -m uvicorn app.main:app --reload --port 8000
 ```
@@ -279,11 +299,26 @@ npm run dev
 ```
 
 - **Frontend App**: `http://localhost:3000`
+- **Nexus Flow Canvas**: `http://localhost:3000/dashboard/flows`
 - **FastAPI Documentation**: `http://localhost:8000/docs`
 
 ---
 
 ## 📖 API Endpoints Reference
+
+### 🌊 Nexus Flow (Workflow / Flowchart Canvas)
+| Method | Endpoint | Description |
+|---|---|---|
+| `GET` | `/api/flows/?workspace_id={id}` | List workspace flows (respecting permissions) |
+| `POST` | `/api/flows/` | Create flow from scratch or starter template |
+| `GET` | `/api/flows/{id}` | Get full flow graph, nodes, edges, versions & comments |
+| `PUT` | `/api/flows/{id}` | Update flow title, description, or visibility |
+| `DELETE` | `/api/flows/{id}` | Delete workflow canvas |
+| `POST` | `/api/flows/{id}/sync` | Transactional bulk save for nodes & edges |
+| `POST` | `/api/flows/{id}/ai-explain` | Gemini 2.5 Flash flow synthesis & SOP generation |
+| `POST` | `/api/flows/{id}/versions` | Create named graph snapshot |
+| `POST` | `/api/flows/{id}/versions/{v_id}/restore` | Restore previous graph snapshot |
+| `POST` | `/api/flows/{id}/comments` | Post comment on canvas or pinned to node |
 
 ### 🔐 Authentication
 | Method | Endpoint | Description |
@@ -300,7 +335,7 @@ npm run dev
 | `GET` | `/api/workspaces/{id}` | Get workspace details |
 | `POST` | `/api/workspaces/join/{code}` | Join workspace via invite code |
 | `POST` | `/api/workspaces/{id}/regenerate-invite` | Regenerate 7-day invite code |
-| `GET` | `/api/workspaces/{id}/activity` | Real-time workspace activity feed |
+| `GET` | `/api/workspaces/{id}/activity` | Real-time workspace activity feed (Redis cached) |
 | `GET` | `/api/workspaces/{id}/settings` | Get workspace admin settings & limits |
 | `PATCH` | `/api/workspaces/{id}/settings` | Update workspace admin settings |
 | `GET` | `/api/workspaces/{id}/members` | List members and roles |
@@ -361,20 +396,9 @@ npm run dev
 
 - **Stateless JWT Tokens**: 7-day cryptographically signed authentication.
 - **HMAC-SHA256 Webhook Verification**: Cryptographic validation on every incoming GitHub webhook payload.
-- **Granular Role-Based Access Control**: Server-side permission guards on admin actions, task mutation, and workspace settings.
+- **Granular Role-Based Access Control**: Server-side permission guards on admin actions, task mutation, flow visibility, and workspace settings.
 - **Strict Privacy Direct Messaging**: DM payloads are strictly partitioned and query-filtered at the database level.
 - **Prompt Injection Defense**: Guardrails in agent system prompts preventing role overriding and malicious HTML/JS injection.
-
----
-
-## 🤝 Contributing
-
-Contributions are welcome! Follow these steps:
-1. Fork the project.
-2. Create a feature branch (`git checkout -b feat/my-cool-feature`).
-3. Commit your changes (`git commit -m 'feat: add my feature'`).
-4. Push to the branch (`git push origin feat/my-cool-feature`).
-5. Open a Pull Request.
 
 ---
 
@@ -383,5 +407,5 @@ Contributions are welcome! Follow these steps:
 This project is licensed under the **MIT License** — see the [LICENSE](LICENSE) file for details.
 
 <div align="center">
-  <sub>Built with ❤️ using FastAPI, Next.js 14, LangGraph, and Google Gemini 2.5 Flash.</sub>
+  <sub>Built with ❤️ using FastAPI, Next.js 14, LangGraph, Redis, React Flow, and Google Gemini 2.5 Flash.</sub>
 </div>

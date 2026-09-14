@@ -43,6 +43,7 @@ from ..services.github_app import (
 
 from langchain_google_genai import ChatGoogleGenerativeAI
 from langchain_core.messages import SystemMessage, HumanMessage
+from ..utils.development_cache import development_cache
 
 logger = logging.getLogger(__name__)
 
@@ -729,27 +730,37 @@ async def get_since_you_were_away(
 
     summary = ""
     if prs or commits:
-        try:
-            llm = ChatGoogleGenerativeAI(
-                model=os.getenv("GEMINI_MODEL", "gemini-2.5-flash"),
-                google_api_key=os.getenv("GEMINI_API_KEY"),
-                temperature=0.3
-            )
-            pr_bullets = "\n".join([f"- PR #{p.pr_number} '{p.title}' ({p.state}) by @{p.author_login}" for p in prs[:6]])
-            commit_bullets = "\n".join([f"- Commit on '{c.branch}': {c.message.splitlines()[0]} by {c.author_login}" for c in commits[:8]])
+        # 1. Compute fingerprint of current developments (PRs + Commits)
+        current_fingerprint = development_cache.compute_fingerprint(prs + commits)
 
-            prompt = f"""You are Nexus Workspace Assistant. Synthesize a concise 1-2 sentence executive brief summarizing key recent repository developments.
+        # 2. Check if cached summary exists for this exact set of developments
+        cached_summary = development_cache.get_cached_response(workspace_id, current_fingerprint)
+        if cached_summary:
+            summary = cached_summary
+        else:
+            try:
+                llm = ChatGoogleGenerativeAI(
+                    model=os.getenv("GEMINI_MODEL", "gemini-2.5-flash"),
+                    google_api_key=os.getenv("GEMINI_API_KEY"),
+                    temperature=0.3
+                )
+                pr_bullets = "\n".join([f"- PR #{p.pr_number} '{p.title}' ({p.state}) by @{p.author_login}" for p in prs[:6]])
+                commit_bullets = "\n".join([f"- Commit on '{c.branch}': {c.message.splitlines()[0]} by {c.author_login}" for c in commits[:8]])
+
+                prompt = f"""You are Nexus Workspace Assistant. Synthesize a concise 1-2 sentence executive brief summarizing key recent repository developments.
 Recent PRs:
 {pr_bullets or 'None'}
 
 Recent Commits:
 {commit_bullets or 'None'}
 """
-            res = await llm.ainvoke([SystemMessage(content="Be concise, professional and highlight key deliverables in 1-2 sentences."), HumanMessage(content=prompt)])
-            summary = res.content
-        except Exception as e:
-            logger.warning("Failed to generate AI summary for Since You Were Away: %s", e)
-            summary = f"Recent repository activity: {len(prs)} pull request(s) and {len(commits)} commit(s) recorded across your monitored repositories."
+                res = await llm.ainvoke([SystemMessage(content="Be concise, professional and highlight key deliverables in 1-2 sentences."), HumanMessage(content=prompt)])
+                summary = res.content
+                # Cache the fresh synthesis for this workspace
+                development_cache.set_cached_response(workspace_id, current_fingerprint, summary)
+            except Exception as e:
+                logger.warning("Failed to generate AI summary for Since You Were Away: %s", e)
+                summary = f"Recent repository activity: {len(prs)} pull request(s) and {len(commits)} commit(s) recorded across your monitored repositories."
     else:
         summary = "No repository activity recorded yet. Connect and sync your repositories to track commits and PRs."
 

@@ -1,14 +1,15 @@
 import axios from "axios";
 
-const api = axios.create({
-  baseURL:
-    `${process.env.NEXT_PUBLIC_API_URL}/api` ||
-    "http://localhost:8000/api",
+const rawApiUrl = process.env.NEXT_PUBLIC_API_URL;
+const baseApiUrl = rawApiUrl
+  ? (rawApiUrl.endsWith("/api") ? rawApiUrl : `${rawApiUrl}/api`)
+  : "http://localhost:8000/api";
 
+const api = axios.create({
+  baseURL: baseApiUrl,
   headers: {
     "Content-Type": "application/json",
   },
-
   withCredentials: true,
 });
 api.interceptors.response.use(

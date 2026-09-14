@@ -341,4 +341,149 @@ class WorkspaceActivityItem(BaseModel):
 class WorkspaceActivityResponse(BaseModel):
     workspace_id: UUID
     activities: list[WorkspaceActivityItem] = []
+
+
+# --- Nexus Flow (Section 26: Workflow / Flowchart Canvas) Schemas ---
+
+class FlowNodeIn(BaseModel):
+    node_key: str
+    type: str = "default"
+    label: str
+    position_x: float
+    position_y: float
+    data_json: dict = {}
+    linked_object_type: Optional[str] = None
+    linked_object_id: Optional[str] = None
+
+
+class FlowNodeOut(BaseModel):
+    id: UUID
+    flow_id: UUID
+    node_key: str
+    type: str
+    label: str
+    position_x: float
+    position_y: float
+    data_json: dict = {}
+    linked_object_type: Optional[str] = None
+    linked_object_id: Optional[str] = None
+
+    class Config:
+        from_attributes = True
+
+
+class FlowEdgeIn(BaseModel):
+    edge_key: str
+    source_node_key: str
+    target_node_key: str
+    source_handle: Optional[str] = None
+    target_handle: Optional[str] = None
+    label: Optional[str] = None
+    data_json: dict = {}
+
+
+class FlowEdgeOut(BaseModel):
+    id: UUID
+    flow_id: UUID
+    edge_key: str
+    source_node_key: str
+    target_node_key: str
+    source_handle: Optional[str] = None
+    target_handle: Optional[str] = None
+    label: Optional[str] = None
+    data_json: dict = {}
+
+    class Config:
+        from_attributes = True
+
+
+class FlowCreate(BaseModel):
+    workspace_id: UUID
+    title: str = "Untitled Workflow"
+    description: Optional[str] = None
+    visibility: str = "workspace"
+    template: Optional[str] = None  # e.g., "github_pr_triage", "release_pipeline", "blank"
+
+
+class FlowUpdate(BaseModel):
+    title: Optional[str] = None
+    description: Optional[str] = None
+    visibility: Optional[str] = None
+
+
+class FlowCommentIn(BaseModel):
+    node_key: Optional[str] = None
+    text: str
+
+
+class FlowCommentOut(BaseModel):
+    id: UUID
+    flow_id: UUID
+    node_key: Optional[str] = None
+    user_id: UUID
+    user_email: Optional[str] = None
+    text: str
+    created_at: datetime
+
+    class Config:
+        from_attributes = True
+
+
+class FlowVersionOut(BaseModel):
+    id: UUID
+    flow_id: UUID
+    version_name: str
+    created_by: UUID
+    created_at: datetime
+
+    class Config:
+        from_attributes = True
+
+
+class FlowOut(BaseModel):
+    id: UUID
+    workspace_id: UUID
+    title: str
+    description: Optional[str] = None
+    created_by: UUID
+    visibility: str
+    created_at: datetime
+    updated_at: datetime
+    nodes_count: Optional[int] = 0
+    edges_count: Optional[int] = 0
+
+    class Config:
+        from_attributes = True
+
+
+class FlowDetailOut(BaseModel):
+    id: UUID
+    workspace_id: UUID
+    title: str
+    description: Optional[str] = None
+    created_by: UUID
+    visibility: str
+    created_at: datetime
+    updated_at: datetime
+    nodes: list[FlowNodeOut] = []
+    edges: list[FlowEdgeOut] = []
+    comments: list[FlowCommentOut] = []
+    versions: list[FlowVersionOut] = []
+
+    class Config:
+        from_attributes = True
+
+
+class FlowSyncPayload(BaseModel):
+    nodes: list[FlowNodeIn]
+    edges: list[FlowEdgeIn]
+
+
+class FlowVersionCreate(BaseModel):
+    version_name: str = "Snapshot"
+
+
+class FlowAIExplainRequest(BaseModel):
+    question: Optional[str] = None
+
 
