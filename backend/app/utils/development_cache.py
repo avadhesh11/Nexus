@@ -89,7 +89,10 @@ class WorkspaceDevelopmentCache:
                             current_fingerprint[:8],
                             entry["hit_count"]
                         )
-                        return entry.get("response")
+                        resp = entry.get("response")
+                        if isinstance(resp, list):
+                            return "".join([p.get("text", "") if isinstance(p, dict) else str(p) for p in resp]).strip()
+                        return str(resp) if resp is not None else None
                     else:
                         logger.info(
                             "Redis Development Cache INVALIDATED for workspace %s (new developments detected). Calling LLM.",
@@ -108,17 +111,25 @@ class WorkspaceDevelopmentCache:
                 workspace_id,
                 current_fingerprint[:8]
             )
-            return entry.get("response")
+            resp = entry.get("response")
+            if isinstance(resp, list):
+                return "".join([p.get("text", "") if isinstance(p, dict) else str(p) for p in resp]).strip()
+            return str(resp) if resp is not None else None
 
         return None
 
-    def set_cached_response(self, workspace_id: str, fingerprint: str, response: str) -> None:
+    def set_cached_response(self, workspace_id: str, fingerprint: str, response: Any) -> None:
         """
         Stores the LLM synthesis and development fingerprint in Redis (with TTL) and memory fallback.
         """
+        if isinstance(response, list):
+            clean_response = "".join([p.get("text", "") if isinstance(p, dict) else str(p) for p in response]).strip()
+        else:
+            clean_response = str(response or "").strip()
+
         payload = {
             "fingerprint": fingerprint,
-            "response": response,
+            "response": clean_response,
             "updated_at": datetime.now(UTC).isoformat(),
             "hit_count": 0
         }
