@@ -29,7 +29,10 @@ import {
   Sun,
   Moon,
   ChevronLeft,
-  ChevronRight
+  ChevronRight,
+  X,
+  AlertCircle,
+  Users
 } from "lucide-react";
 
 const NAV = [
@@ -46,7 +49,7 @@ const NAV = [
 export default function DashboardLayout({ children }: { children: React.ReactNode }) {
   const router = useRouter();
   const pathname = usePathname();
-  const { user, setUser,logout } = useAuthStore();
+  const { user, setUser, logout } = useAuthStore();
   const { currentWorkspace, setCurrentWorkspace, setWorkspaces } = useWorkspaceStore();
   const { theme, toggleTheme } = useThemeStore();
   const [isCollapsed, setIsCollapsed] = useState(false);
@@ -54,10 +57,24 @@ export default function DashboardLayout({ children }: { children: React.ReactNod
   const [copied, setCopied] = useState(false);
   const [showWsMenu, setShowWsMenu] = useState(false);
   const [workspaces, setWsList] = useState<Workspace[]>([]);
-  const [code, setCode] = useState("");
-  const [showCreateWs, setShowCreateWs] = useState(false);
-  const [showJoinWs, setShowJoinWs] = useState(false);
-  const [newWorkspaceName, setNewWorkspaceName] = useState("");
+
+  // Create Workspace Modal State
+  const [showCreateModal, setShowCreateModal] = useState(false);
+  const [newWsName, setNewWsName] = useState("");
+  const [newWsDesc, setNewWsDesc] = useState("");
+  const [createLoading, setCreateLoading] = useState(false);
+  const [createError, setCreateError] = useState("");
+
+  // Join Workspace Modal State
+  const [showJoinModal, setShowJoinModal] = useState(false);
+  const [joinCode, setJoinCode] = useState("");
+  const [joinLoading, setJoinLoading] = useState(false);
+  const [joinError, setJoinError] = useState("");
+
+  // Fallback screen join code state
+  const [emptyJoinCode, setEmptyJoinCode] = useState("");
+  const [emptyJoinLoading, setEmptyJoinLoading] = useState(false);
+  const [emptyJoinError, setEmptyJoinError] = useState("");
 
   useEffect(() => {
     try {
@@ -83,7 +100,6 @@ export default function DashboardLayout({ children }: { children: React.ReactNod
 
     const init = async () => {
       try {
-        // Parallelize user info and workspace list fetching
         const [mePromise, wsPromise] = [
           !user ? api.get("/auth/me") : Promise.resolve({ data: user }),
           api.get("/workspaces/")
@@ -100,7 +116,6 @@ export default function DashboardLayout({ children }: { children: React.ReactNod
         setWsList(ws);
         setWorkspaces(ws);
 
-        // Validate persisted workspace belongs to this user, otherwise reset
         const belongsToUser = currentWorkspace && ws.some((w: Workspace) => w.id === currentWorkspace.id);
         if (!belongsToUser && ws.length > 0) {
           setCurrentWorkspace(ws[0]);
@@ -132,67 +147,105 @@ export default function DashboardLayout({ children }: { children: React.ReactNod
       setTimeout(() => setCopied(false), 2000);
     }
   };
-  const createWorkspace = async () => {
-  try {
-    if (!newWorkspaceName.trim()) return;
 
-    const { data } = await api.post("/workspaces/", {
-      name: newWorkspaceName,
-    });
-
-    const updated = [...workspaces, data];
-
-    setWsList(updated);
-    setWorkspaces(updated);
-    setCurrentWorkspace(data);
-
-    setNewWorkspaceName("");
-    setShowCreateWs(false);
-    setShowWsMenu(false);
-
-  } catch (error) {
-    console.log(error);
-  }
-};
-  const Join=async()=>{
-    try {
-       if (!code.trim()) {
-      console.log("Invalid code");
+  const handleCreateWorkspace = async (e?: React.FormEvent) => {
+    if (e) e.preventDefault();
+    if (!newWsName.trim()) {
+      setCreateError("Workspace name is required");
       return;
     }
-     
-        const { data } = await api.post(`/workspaces/join/${code}`);
 
-    console.log(data);
+    setCreateLoading(true);
+    setCreateError("");
 
-    // update workspace list
-    const updatedWorkspaces = [...workspaces, data];
+    try {
+      const { data } = await api.post("/workspaces/", {
+        name: newWsName.trim(),
+        description: newWsDesc.trim() || undefined,
+      });
 
-    setWsList(updatedWorkspaces);
-    setWorkspaces(updatedWorkspaces);
+      const updated = [...workspaces, data];
+      setWsList(updated);
+      setWorkspaces(updated);
+      setCurrentWorkspace(data);
 
-    // set joined workspace as current
-    setCurrentWorkspace(data);
-
-    // clear input
-    setCode("");
-
-      
-      
-    } catch (error: unknown) {
-  const err = error as {
-    response?: {
-      data?: {
-        message?: string;
-      };
-    };
+      setNewWsName("");
+      setNewWsDesc("");
+      setShowCreateModal(false);
+    } catch (err: unknown) {
+      const error = err as { response?: { data?: { detail?: string; message?: string } } };
+      setCreateError(
+        error?.response?.data?.detail ||
+        error?.response?.data?.message ||
+        "Failed to create workspace. Please try again."
+      );
+    } finally {
+      setCreateLoading(false);
+    }
   };
 
-  console.log(
-    err?.response?.data?.message || "Failed to join workspace"
-  );
-}
-  }
+  const handleJoinWorkspace = async (e?: React.FormEvent) => {
+    if (e) e.preventDefault();
+    const codeToUse = joinCode.trim();
+    if (!codeToUse) {
+      setJoinError("Please enter an invite code");
+      return;
+    }
+
+    setJoinLoading(true);
+    setJoinError("");
+
+    try {
+      const { data } = await api.post(`/workspaces/join/${codeToUse}`);
+
+      const exists = workspaces.some((w) => w.id === data.id);
+      const updatedWorkspaces = exists ? workspaces : [...workspaces, data];
+
+      setWsList(updatedWorkspaces);
+      setWorkspaces(updatedWorkspaces);
+      setCurrentWorkspace(data);
+
+      setJoinCode("");
+      setShowJoinModal(false);
+    } catch (err: unknown) {
+      const error = err as { response?: { data?: { detail?: string; message?: string } } };
+      setJoinError(
+        error?.response?.data?.detail ||
+        error?.response?.data?.message ||
+        "Failed to join workspace. Please verify the invite code."
+      );
+    } finally {
+      setJoinLoading(false);
+    }
+  };
+
+  const handleEmptyScreenJoin = async () => {
+    const codeToUse = emptyJoinCode.trim();
+    if (!codeToUse) {
+      setEmptyJoinError("Please enter an invite code");
+      return;
+    }
+
+    setEmptyJoinLoading(true);
+    setEmptyJoinError("");
+
+    try {
+      const { data } = await api.post(`/workspaces/join/${codeToUse}`);
+      setWsList([data]);
+      setWorkspaces([data]);
+      setCurrentWorkspace(data);
+      setEmptyJoinCode("");
+    } catch (err: unknown) {
+      const error = err as { response?: { data?: { detail?: string; message?: string } } };
+      setEmptyJoinError(
+        error?.response?.data?.detail ||
+        error?.response?.data?.message ||
+        "Failed to join workspace. Please verify the invite code."
+      );
+    } finally {
+      setEmptyJoinLoading(false);
+    }
+  };
 
   const handleLogout = () => {
     logout();
@@ -206,43 +259,55 @@ export default function DashboardLayout({ children }: { children: React.ReactNod
   );
 
   if (!currentWorkspace) return (
-    <div className="min-h-screen bg-bg grid-bg flex flex-col items-center justify-center gap-4">
-      <div className="w-12 h-12 rounded-2xl bg-accent/10 border border-accent/20 flex items-center justify-center mb-2">
-        <Plus className="w-5 h-5 text-accent" />
+    <div className="min-h-screen bg-bg grid-bg flex flex-col items-center justify-center p-4">
+      <div className="w-full max-w-md nexus-card p-6 flex flex-col items-center gap-4 text-center">
+        <div className="w-14 h-14 rounded-2xl bg-accent/10 border border-accent/20 flex items-center justify-center text-accent">
+          <Plus className="w-6 h-6" />
+        </div>
+        <div>
+          <h2 className="font-display font-bold text-xl text-nexus-text">No workspaces yet</h2>
+          <p className="text-nexus-muted text-xs mt-1">Create your first workspace or join an existing team.</p>
+        </div>
+
+        <div className="w-full border-t border-nexus-border pt-4">
+          <p className="text-xs font-semibold text-nexus-text mb-2.5 text-left">Create a new workspace</p>
+          <CreateWorkspaceInline onCreated={(ws) => {
+            setCurrentWorkspace(ws);
+            setWsList([ws]);
+            setWorkspaces([ws]);
+          }} />
+        </div>
+
+        <div className="w-full border-t border-nexus-border pt-4">
+          <p className="text-xs font-semibold text-nexus-text mb-2.5 text-left">OR Join an existing workspace</p>
+          {emptyJoinError && (
+            <div className="mb-2 p-2 rounded-lg bg-red-500/10 border border-red-500/20 text-red-400 text-xs flex items-center gap-1.5 text-left">
+              <AlertCircle className="w-3.5 h-3.5 flex-shrink-0" />
+              <span>{emptyJoinError}</span>
+            </div>
+          )}
+          <div className="flex gap-2">
+            <input
+              className="nexus-input flex-1 uppercase tracking-widest text-xs"
+              value={emptyJoinCode}
+              onChange={(e) => setEmptyJoinCode(e.target.value)}
+              placeholder="e.g. 6A45812"
+              onKeyDown={(e) => e.key === "Enter" && handleEmptyScreenJoin()}
+            />
+            <button
+              className="nexus-btn-primary text-xs px-4"
+              onClick={handleEmptyScreenJoin}
+              disabled={emptyJoinLoading || !emptyJoinCode.trim()}
+            >
+              {emptyJoinLoading ? <Spinner className="w-3.5 h-3.5" /> : "Join"}
+            </button>
+          </div>
+        </div>
+
+        <button onClick={handleLogout} className="text-xs text-nexus-muted hover:text-red-400 mt-2 transition-colors">
+          Sign out
+        </button>
       </div>
-      <h2 className="font-display font-bold text-xl">No workspaces yet</h2>
-      <p className="text-[#5a5a7a] text-sm">Create your first workspace to get started.</p>
-      <CreateWorkspaceInline onCreated={(ws) => {
-        setCurrentWorkspace(ws);
-        setWsList([ws]);
-        setWorkspaces([ws]);
-      }} />
-      <div className="w-full max-w-sm mt-2">
-  <p className="text-[#5a5a7a] text-sm mb-2 text-center">
-    OR Join an existing workspace
-  </p>
-
-  <div className="flex gap-2">
-    <input
-      className="nexus-input flex-1 uppercase tracking-widest text-center"
-      value={code}
-      onChange={(e) => setCode(e.target.value)}
-      placeholder="6A45812"
-      onKeyDown={(e) => e.key === "Enter" && Join()}
-    />
-
-    <button
-      className="nexus-btn-primary min-w-[90px]"
-      onClick={Join}
-      disabled={!code.trim()}
-    >
-      Join
-    </button>
-  </div>
-</div>
-      <button onClick={handleLogout} className="text-xs text-[#5a5a7a] hover:text-[#ff6b6b] mt-4 transition-colors">
-        Sign out
-      </button>
     </div>
   );
 
@@ -252,7 +317,7 @@ export default function DashboardLayout({ children }: { children: React.ReactNod
       <aside
         className={`${
           isCollapsed ? "w-16" : "w-60"
-        } border-r border-nexus-border flex flex-col bg-surface flex-shrink-0 transition-all duration-300 ease-in-out relative z-30 select-none`}
+        } border-r border-nexus-border flex flex-col bg-surface flex-shrink-0 transition-all duration-300 ease-in-out relative z-40`}
       >
         {/* Workspace switcher */}
         <div className={`p-3 border-b border-nexus-border relative ${isCollapsed ? "flex justify-center" : ""}`}>
@@ -264,7 +329,7 @@ export default function DashboardLayout({ children }: { children: React.ReactNod
             title={isCollapsed ? `${currentWorkspace.name} (Switch workspace)` : undefined}
           >
             <div className="w-8 h-8 rounded-lg bg-accent-dim border border-accent-border flex items-center justify-center flex-shrink-0 shadow-sm">
-              <span className="text-accent text-xs font-bold font-display">{currentWorkspace.name[0]}</span>
+              <span className="text-accent text-xs font-bold font-display">{currentWorkspace.name[0]?.toUpperCase()}</span>
             </div>
             {!isCollapsed && (
               <>
@@ -297,7 +362,7 @@ export default function DashboardLayout({ children }: { children: React.ReactNod
                     className="w-full flex items-center gap-2.5 px-3 py-2 hover:bg-surface2 text-left transition-colors text-sm text-nexus-text"
                   >
                     <div className="w-6 h-6 rounded bg-accent-dim flex items-center justify-center text-[10px] font-bold text-accent font-display">
-                      {ws.name[0]}
+                      {ws.name[0]?.toUpperCase()}
                     </div>
                     <span className="truncate flex-1 font-medium">{ws.name}</span>
                     {ws.id === currentWorkspace.id && <Check className="w-3.5 h-3.5 text-accent" />}
@@ -308,57 +373,30 @@ export default function DashboardLayout({ children }: { children: React.ReactNod
 
               <button
                 onClick={() => {
-                  setShowCreateWs(!showCreateWs);
-                  setShowJoinWs(false);
+                  setShowWsMenu(false);
+                  setCreateError("");
+                  setNewWsName("");
+                  setNewWsDesc("");
+                  setShowCreateModal(true);
                 }}
                 className="w-full flex items-center gap-2 px-3 py-2 text-xs text-nexus-muted hover:bg-surface2 hover:text-nexus-text transition-colors"
               >
-                <Plus className="w-3.5 h-3.5" />
+                <Plus className="w-3.5 h-3.5 text-accent" />
                 Create New Workspace
               </button>
 
-              {showCreateWs && (
-                <div className="p-2 border-t border-nexus-border flex gap-2">
-                  <input
-                    className="nexus-input flex-1 text-xs"
-                    placeholder="Workspace name"
-                    value={newWorkspaceName}
-                    onChange={(e) => setNewWorkspaceName(e.target.value)}
-                    onKeyDown={(e) => e.key === "Enter" && createWorkspace()}
-                    autoFocus
-                  />
-                  <button className="nexus-btn-primary text-xs px-3" onClick={createWorkspace}>
-                    Create
-                  </button>
-                </div>
-              )}
-
               <button
                 onClick={() => {
-                  setShowJoinWs(!showJoinWs);
-                  setShowCreateWs(false);
+                  setShowWsMenu(false);
+                  setJoinError("");
+                  setJoinCode("");
+                  setShowJoinModal(true);
                 }}
                 className="w-full flex items-center gap-2 px-3 py-2 text-xs text-nexus-muted hover:bg-surface2 hover:text-nexus-text transition-colors"
               >
-                <Plus className="w-3.5 h-3.5" />
+                <Users className="w-3.5 h-3.5 text-accent" />
                 Join Workspace
               </button>
-
-              {showJoinWs && (
-                <div className="p-2 border-t border-nexus-border flex gap-2">
-                  <input
-                    className="nexus-input flex-1 text-xs uppercase tracking-widest"
-                    placeholder="Invite code"
-                    value={code}
-                    onChange={(e) => setCode(e.target.value)}
-                    onKeyDown={(e) => e.key === "Enter" && Join()}
-                    autoFocus
-                  />
-                  <button className="nexus-btn-primary text-xs px-3" onClick={Join}>
-                    Join
-                  </button>
-                </div>
-              )}
 
               <Link
                 href="/dashboard/settings"
@@ -531,7 +569,166 @@ export default function DashboardLayout({ children }: { children: React.ReactNod
         <main className="flex-1 overflow-auto bg-bg">{children}</main>
       </div>
 
-      {showWsMenu && <div className="fixed inset-0 z-40" onClick={() => setShowWsMenu(false)} />}
+      {/* Dropdown Backdrop */}
+      {showWsMenu && (
+        <div
+          className="fixed inset-0 z-30"
+          onClick={() => setShowWsMenu(false)}
+        />
+      )}
+
+      {/* Create Workspace Modal */}
+      {showCreateModal && (
+        <div className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-black/60 backdrop-blur-sm animate-fade-in">
+          <div
+            className="w-full max-w-md bg-surface border border-nexus-border rounded-2xl shadow-2xl p-6 relative"
+            onClick={(e) => e.stopPropagation()}
+          >
+            <div className="flex items-center justify-between mb-4 pb-3 border-b border-nexus-border">
+              <div className="flex items-center gap-2.5">
+                <div className="w-8 h-8 rounded-lg bg-accent/10 border border-accent/20 flex items-center justify-center text-accent">
+                  <Plus className="w-4 h-4" />
+                </div>
+                <div>
+                  <h3 className="text-sm font-bold text-nexus-text font-display">Create New Workspace</h3>
+                  <p className="text-[11px] text-nexus-muted">Set up a collaborative space for your team</p>
+                </div>
+              </div>
+              <button
+                onClick={() => setShowCreateModal(false)}
+                className="p-1.5 rounded-lg text-nexus-muted hover:text-nexus-text hover:bg-surface2 transition-colors"
+              >
+                <X className="w-4 h-4" />
+              </button>
+            </div>
+
+            {createError && (
+              <div className="mb-4 p-3 rounded-xl bg-red-500/10 border border-red-500/20 text-red-400 text-xs flex items-center gap-2">
+                <AlertCircle className="w-4 h-4 flex-shrink-0" />
+                <span>{createError}</span>
+              </div>
+            )}
+
+            <form onSubmit={handleCreateWorkspace} className="space-y-4">
+              <div>
+                <label className="block text-xs font-semibold text-nexus-text mb-1.5">
+                  Workspace Name <span className="text-accent">*</span>
+                </label>
+                <input
+                  type="text"
+                  required
+                  autoFocus
+                  placeholder="e.g. Acme Engineering"
+                  value={newWsName}
+                  onChange={(e) => setNewWsName(e.target.value)}
+                  className="nexus-input w-full text-xs"
+                />
+              </div>
+
+              <div>
+                <label className="block text-xs font-semibold text-nexus-text mb-1.5">
+                  Description <span className="text-nexus-muted text-[10px]">(Optional)</span>
+                </label>
+                <input
+                  type="text"
+                  placeholder="e.g. Core product roadmap and discussions"
+                  value={newWsDesc}
+                  onChange={(e) => setNewWsDesc(e.target.value)}
+                  className="nexus-input w-full text-xs"
+                />
+              </div>
+
+              <div className="flex items-center justify-end gap-2.5 pt-3 border-t border-nexus-border">
+                <button
+                  type="button"
+                  onClick={() => setShowCreateModal(false)}
+                  className="nexus-btn-ghost text-xs px-3.5 py-2"
+                >
+                  Cancel
+                </button>
+                <button
+                  type="submit"
+                  disabled={createLoading || !newWsName.trim()}
+                  className="nexus-btn-primary text-xs px-4 py-2 flex items-center gap-2"
+                >
+                  {createLoading ? <Spinner className="w-3.5 h-3.5" /> : <Plus className="w-3.5 h-3.5" />}
+                  <span>Create Workspace</span>
+                </button>
+              </div>
+            </form>
+          </div>
+        </div>
+      )}
+
+      {/* Join Workspace Modal */}
+      {showJoinModal && (
+        <div className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-black/60 backdrop-blur-sm animate-fade-in">
+          <div
+            className="w-full max-w-md bg-surface border border-nexus-border rounded-2xl shadow-2xl p-6 relative"
+            onClick={(e) => e.stopPropagation()}
+          >
+            <div className="flex items-center justify-between mb-4 pb-3 border-b border-nexus-border">
+              <div className="flex items-center gap-2.5">
+                <div className="w-8 h-8 rounded-lg bg-accent/10 border border-accent/20 flex items-center justify-center text-accent">
+                  <Users className="w-4 h-4" />
+                </div>
+                <div>
+                  <h3 className="text-sm font-bold text-nexus-text font-display">Join Workspace</h3>
+                  <p className="text-[11px] text-nexus-muted">Enter an invite code provided by your workspace admin</p>
+                </div>
+              </div>
+              <button
+                onClick={() => setShowJoinModal(false)}
+                className="p-1.5 rounded-lg text-nexus-muted hover:text-nexus-text hover:bg-surface2 transition-colors"
+              >
+                <X className="w-4 h-4" />
+              </button>
+            </div>
+
+            {joinError && (
+              <div className="mb-4 p-3 rounded-xl bg-red-500/10 border border-red-500/20 text-red-400 text-xs flex items-center gap-2">
+                <AlertCircle className="w-4 h-4 flex-shrink-0" />
+                <span>{joinError}</span>
+              </div>
+            )}
+
+            <form onSubmit={handleJoinWorkspace} className="space-y-4">
+              <div>
+                <label className="block text-xs font-semibold text-nexus-text mb-1.5">
+                  Invite Code <span className="text-accent">*</span>
+                </label>
+                <input
+                  type="text"
+                  required
+                  autoFocus
+                  placeholder="e.g. 6A45812"
+                  value={joinCode}
+                  onChange={(e) => setJoinCode(e.target.value)}
+                  className="nexus-input w-full text-xs uppercase tracking-widest"
+                />
+              </div>
+
+              <div className="flex items-center justify-end gap-2.5 pt-3 border-t border-nexus-border">
+                <button
+                  type="button"
+                  onClick={() => setShowJoinModal(false)}
+                  className="nexus-btn-ghost text-xs px-3.5 py-2"
+                >
+                  Cancel
+                </button>
+                <button
+                  type="submit"
+                  disabled={joinLoading || !joinCode.trim()}
+                  className="nexus-btn-primary text-xs px-4 py-2 flex items-center gap-2"
+                >
+                  {joinLoading ? <Spinner className="w-3.5 h-3.5" /> : <Users className="w-3.5 h-3.5" />}
+                  <span>Join Workspace</span>
+                </button>
+              </div>
+            </form>
+          </div>
+        </div>
+      )}
     </div>
   );
 }
@@ -540,33 +737,48 @@ export default function DashboardLayout({ children }: { children: React.ReactNod
 function CreateWorkspaceInline({ onCreated }: { onCreated: (ws: Workspace) => void }) {
   const [name, setName] = useState("");
   const [loading, setLoading] = useState(false);
+  const [error, setError] = useState("");
 
-  const create = async () => {
+  const create = async (e?: React.FormEvent) => {
+    if (e) e.preventDefault();
     if (!name.trim()) return;
     setLoading(true);
+    setError("");
     try {
-      const { data } = await api.post("/workspaces/", { name });
+      const { data } = await api.post("/workspaces/", { name: name.trim() });
       onCreated(data);
-    } catch (err) {
-      console.error(err);
+    } catch (err: unknown) {
+      const error = err as { response?: { data?: { detail?: string; message?: string } } };
+      setError(
+        error?.response?.data?.detail ||
+        error?.response?.data?.message ||
+        "Failed to create workspace"
+      );
     } finally {
       setLoading(false);
     }
   };
 
   return (
-    <div className="flex gap-2 w-full max-w-sm">
-      <input
-        className="nexus-input flex-1"
-        value={name}
-        onChange={e => setName(e.target.value)}
-        placeholder="Workspace name..."
-        onKeyDown={e => e.key === "Enter" && create()}
-        autoFocus
-      />
-      <button className="nexus-btn-primary" onClick={create} disabled={loading || !name.trim()}>
-        {loading ? <Spinner /> : "Create"}
-      </button>
-    </div>
+    <form onSubmit={create} className="w-full flex flex-col gap-2">
+      {error && (
+        <div className="p-2 rounded-lg bg-red-500/10 border border-red-500/20 text-red-400 text-xs flex items-center gap-1.5 text-left">
+          <AlertCircle className="w-3.5 h-3.5 flex-shrink-0" />
+          <span>{error}</span>
+        </div>
+      )}
+      <div className="flex gap-2">
+        <input
+          className="nexus-input flex-1 text-xs"
+          value={name}
+          onChange={e => setName(e.target.value)}
+          placeholder="Workspace name..."
+          autoFocus
+        />
+        <button className="nexus-btn-primary text-xs px-4" type="submit" disabled={loading || !name.trim()}>
+          {loading ? <Spinner className="w-3.5 h-3.5" /> : "Create"}
+        </button>
+      </div>
+    </form>
   );
 }

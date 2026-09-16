@@ -92,7 +92,7 @@ function TriggerNode({ data, selected }: NodeProps<Node<FlowNodeData>>) {
   const IconComponent = (data.icon && ICON_MAP[data.icon]) ? ICON_MAP[data.icon] : Play;
   return (
     <div
-      className={`relative px-4 py-3 rounded-2xl bg-zinc-900/95 border backdrop-blur-md shadow-xl transition-all duration-200 min-w-[200px] max-w-[260px] ${
+      className={`relative px-4 py-3 rounded-2xl bg-surface/95 border backdrop-blur-md shadow-xl transition-all duration-200 min-w-[200px] max-w-[260px] ${
         selected
           ? "border-purple-500 ring-2 ring-purple-500/30 scale-[1.02]"
           : "border-purple-500/40 hover:border-purple-500/80"
@@ -109,16 +109,16 @@ function TriggerNode({ data, selected }: NodeProps<Node<FlowNodeData>>) {
           <span className="text-[10px] font-bold uppercase tracking-wider text-purple-400 block">
             Trigger Event
           </span>
-          <h4 className="text-xs font-semibold text-white truncate">{data.label || "Trigger"}</h4>
+          <h4 className="text-xs font-semibold text-nexus-text truncate">{data.label || "Trigger"}</h4>
         </div>
       </div>
 
       {data.description && (
-        <p className="text-[11px] text-zinc-400 line-clamp-2 leading-relaxed">{data.description}</p>
+        <p className="text-[11px] text-nexus-muted line-clamp-2 leading-relaxed">{data.description}</p>
       )}
 
       {data.linked_object_type && (
-        <div className="mt-2 pt-2 border-t border-zinc-800 flex items-center gap-1.5 text-[10px] text-purple-300 font-medium">
+        <div className="mt-2 pt-2 border-t border-nexus-border flex items-center gap-1.5 text-[10px] text-purple-400 font-medium">
           <Tag className="w-3 h-3 text-purple-400" />
           <span>Linked to {data.linked_object_type}</span>
         </div>
@@ -127,13 +127,13 @@ function TriggerNode({ data, selected }: NodeProps<Node<FlowNodeData>>) {
       <Handle
         type="source"
         position={Position.Right}
-        className="w-3 h-3 !bg-purple-500 !border-2 !border-zinc-900 rounded-full hover:scale-125 transition-transform"
+        className="w-3 h-3 !bg-purple-500 !border-2 !border-surface rounded-full hover:scale-125 transition-transform"
       />
       <Handle
         type="source"
         position={Position.Bottom}
         id="bottom"
-        className="w-3 h-3 !bg-purple-500 !border-2 !border-zinc-900 rounded-full hover:scale-125 transition-transform"
+        className="w-3 h-3 !bg-purple-500 !border-2 !border-surface rounded-full hover:scale-125 transition-transform"
       />
     </div>
   );
@@ -143,7 +143,7 @@ function ActionNode({ data, selected }: NodeProps<Node<FlowNodeData>>) {
   const IconComponent = (data.icon && ICON_MAP[data.icon]) ? ICON_MAP[data.icon] : Cpu;
   return (
     <div
-      className={`relative px-4 py-3 rounded-2xl bg-zinc-900/95 border backdrop-blur-md shadow-xl transition-all duration-200 min-w-[200px] max-w-[260px] ${
+      className={`relative px-4 py-3 rounded-2xl bg-surface/95 border backdrop-blur-md shadow-xl transition-all duration-200 min-w-[200px] max-w-[260px] ${
         selected
           ? "border-blue-500 ring-2 ring-blue-500/30 scale-[1.02]"
           : "border-blue-500/40 hover:border-blue-500/80"
@@ -152,13 +152,13 @@ function ActionNode({ data, selected }: NodeProps<Node<FlowNodeData>>) {
       <Handle
         type="target"
         position={Position.Left}
-        className="w-3 h-3 !bg-blue-500 !border-2 !border-zinc-900 rounded-full hover:scale-125 transition-transform"
+        className="w-3 h-3 !bg-blue-500 !border-2 !border-surface rounded-full hover:scale-125 transition-transform"
       />
       <Handle
         type="target"
         position={Position.Top}
         id="top"
-        className="w-3 h-3 !bg-blue-500 !border-2 !border-zinc-900 rounded-full hover:scale-125 transition-transform"
+        className="w-3 h-3 !bg-blue-500 !border-2 !border-surface rounded-full hover:scale-125 transition-transform"
       />
 
       <div className="flex items-center gap-2.5 mb-1.5">
@@ -172,16 +172,16 @@ function ActionNode({ data, selected }: NodeProps<Node<FlowNodeData>>) {
           <span className="text-[10px] font-bold uppercase tracking-wider text-blue-400 block">
             Action Step
           </span>
-          <h4 className="text-xs font-semibold text-white truncate">{data.label || "Action"}</h4>
+          <h4 className="text-xs font-semibold text-nexus-text truncate">{data.label || "Action"}</h4>
         </div>
       </div>
 
       {data.description && (
-        <p className="text-[11px] text-zinc-400 line-clamp-2 leading-relaxed">{data.description}</p>
+        <p className="text-[11px] text-nexus-muted line-clamp-2 leading-relaxed">{data.description}</p>
       )}
 
       {data.linked_object_type && (
-        <div className="mt-2 pt-2 border-t border-zinc-800 flex items-center gap-1.5 text-[10px] text-blue-300 font-medium">
+        <div className="mt-2 pt-2 border-t border-nexus-border flex items-center gap-1.5 text-[10px] text-blue-400 font-medium">
           <Tag className="w-3 h-3 text-blue-400" />
           <span>Linked to {data.linked_object_type}</span>
         </div>
@@ -190,13 +190,13 @@ function ActionNode({ data, selected }: NodeProps<Node<FlowNodeData>>) {
       <Handle
         type="source"
         position={Position.Right}
-        className="w-3 h-3 !bg-blue-500 !border-2 !border-zinc-900 rounded-full hover:scale-125 transition-transform"
+        className="w-3 h-3 !bg-blue-500 !border-2 !border-surface rounded-full hover:scale-125 transition-transform"
       />
       <Handle
         type="source"
         position={Position.Bottom}
         id="bottom"
-        className="w-3 h-3 !bg-blue-500 !border-2 !border-zinc-900 rounded-full hover:scale-125 transition-transform"
+        className="w-3 h-3 !bg-blue-500 !border-2 !border-surface rounded-full hover:scale-125 transition-transform"
       />
     </div>
   );
@@ -205,7 +205,7 @@ function ActionNode({ data, selected }: NodeProps<Node<FlowNodeData>>) {
 function DecisionNode({ data, selected }: NodeProps<Node<FlowNodeData>>) {
   return (
     <div
-      className={`relative px-4 py-3 rounded-2xl bg-zinc-900/95 border backdrop-blur-md shadow-xl transition-all duration-200 min-w-[210px] max-w-[270px] ${
+      className={`relative px-4 py-3 rounded-2xl bg-surface/95 border backdrop-blur-md shadow-xl transition-all duration-200 min-w-[210px] max-w-[270px] ${
         selected
           ? "border-amber-500 ring-2 ring-amber-500/30 scale-[1.02]"
           : "border-amber-500/40 hover:border-amber-500/80"
@@ -214,13 +214,13 @@ function DecisionNode({ data, selected }: NodeProps<Node<FlowNodeData>>) {
       <Handle
         type="target"
         position={Position.Left}
-        className="w-3 h-3 !bg-amber-500 !border-2 !border-zinc-900 rounded-full hover:scale-125 transition-transform"
+        className="w-3 h-3 !bg-amber-500 !border-2 !border-surface rounded-full hover:scale-125 transition-transform"
       />
       <Handle
         type="target"
         position={Position.Top}
         id="top"
-        className="w-3 h-3 !bg-amber-500 !border-2 !border-zinc-900 rounded-full hover:scale-125 transition-transform"
+        className="w-3 h-3 !bg-amber-500 !border-2 !border-surface rounded-full hover:scale-125 transition-transform"
       />
 
       <div className="flex items-center gap-2.5 mb-1.5">
@@ -231,15 +231,15 @@ function DecisionNode({ data, selected }: NodeProps<Node<FlowNodeData>>) {
           <span className="text-[10px] font-bold uppercase tracking-wider text-amber-400 block">
             Decision Gate
           </span>
-          <h4 className="text-xs font-semibold text-white truncate">{data.label || "Decision?"}</h4>
+          <h4 className="text-xs font-semibold text-nexus-text truncate">{data.label || "Decision?"}</h4>
         </div>
       </div>
 
       {data.description && (
-        <p className="text-[11px] text-zinc-400 line-clamp-2 leading-relaxed">{data.description}</p>
+        <p className="text-[11px] text-nexus-muted line-clamp-2 leading-relaxed">{data.description}</p>
       )}
 
-      <div className="mt-2 pt-2 border-t border-zinc-800 flex items-center justify-between text-[10px] text-zinc-400">
+      <div className="mt-2 pt-2 border-t border-nexus-border flex items-center justify-between text-[10px] text-nexus-muted">
         <span className="text-emerald-400 font-medium">➔ Top/Right: Pass</span>
         <span className="text-rose-400 font-medium">➔ Bottom: Fail</span>
       </div>
@@ -248,13 +248,13 @@ function DecisionNode({ data, selected }: NodeProps<Node<FlowNodeData>>) {
         type="source"
         position={Position.Right}
         id="yes"
-        className="w-3 h-3 !bg-emerald-500 !border-2 !border-zinc-900 rounded-full hover:scale-125 transition-transform"
+        className="w-3 h-3 !bg-emerald-500 !border-2 !border-surface rounded-full hover:scale-125 transition-transform"
       />
       <Handle
         type="source"
         position={Position.Bottom}
         id="no"
-        className="w-3 h-3 !bg-rose-500 !border-2 !border-zinc-900 rounded-full hover:scale-125 transition-transform"
+        className="w-3 h-3 !bg-rose-500 !border-2 !border-surface rounded-full hover:scale-125 transition-transform"
       />
     </div>
   );
@@ -263,7 +263,7 @@ function DecisionNode({ data, selected }: NodeProps<Node<FlowNodeData>>) {
 function DelayNode({ data, selected }: NodeProps<Node<FlowNodeData>>) {
   return (
     <div
-      className={`relative px-4 py-3 rounded-2xl bg-zinc-900/95 border backdrop-blur-md shadow-xl transition-all duration-200 min-w-[190px] max-w-[240px] ${
+      className={`relative px-4 py-3 rounded-2xl bg-surface/95 border backdrop-blur-md shadow-xl transition-all duration-200 min-w-[190px] max-w-[240px] ${
         selected
           ? "border-pink-500 ring-2 ring-pink-500/30 scale-[1.02]"
           : "border-pink-500/40 hover:border-pink-500/80"
@@ -272,7 +272,7 @@ function DelayNode({ data, selected }: NodeProps<Node<FlowNodeData>>) {
       <Handle
         type="target"
         position={Position.Left}
-        className="w-3 h-3 !bg-pink-500 !border-2 !border-zinc-900 rounded-full hover:scale-125 transition-transform"
+        className="w-3 h-3 !bg-pink-500 !border-2 !border-surface rounded-full hover:scale-125 transition-transform"
       />
 
       <div className="flex items-center gap-2.5 mb-1.5">
@@ -283,18 +283,18 @@ function DelayNode({ data, selected }: NodeProps<Node<FlowNodeData>>) {
           <span className="text-[10px] font-bold uppercase tracking-wider text-pink-400 block">
             Delay / Pause
           </span>
-          <h4 className="text-xs font-semibold text-white truncate">{data.label || "Wait"}</h4>
+          <h4 className="text-xs font-semibold text-nexus-text truncate">{data.label || "Wait"}</h4>
         </div>
       </div>
 
       {data.description && (
-        <p className="text-[11px] text-zinc-400 line-clamp-2 leading-relaxed">{data.description}</p>
+        <p className="text-[11px] text-nexus-muted line-clamp-2 leading-relaxed">{data.description}</p>
       )}
 
       <Handle
         type="source"
         position={Position.Right}
-        className="w-3 h-3 !bg-pink-500 !border-2 !border-zinc-900 rounded-full hover:scale-125 transition-transform"
+        className="w-3 h-3 !bg-pink-500 !border-2 !border-surface rounded-full hover:scale-125 transition-transform"
       />
     </div>
   );
@@ -303,30 +303,30 @@ function DelayNode({ data, selected }: NodeProps<Node<FlowNodeData>>) {
 function NoteNode({ data, selected }: NodeProps<Node<FlowNodeData>>) {
   return (
     <div
-      className={`relative px-4 py-3 rounded-2xl bg-amber-950/40 border backdrop-blur-md shadow-xl transition-all duration-200 min-w-[200px] max-w-[260px] ${
+      className={`relative px-4 py-3 rounded-2xl bg-amber-500/10 border backdrop-blur-md shadow-xl transition-all duration-200 min-w-[200px] max-w-[260px] ${
         selected
           ? "border-amber-400 ring-2 ring-amber-400/30 scale-[1.02]"
           : "border-amber-400/40 hover:border-amber-400/80"
       }`}
     >
-      <div className="flex items-center gap-2 mb-1.5 text-amber-400">
+      <div className="flex items-center gap-2 mb-1.5 text-amber-500">
         <StickyNote className="w-4 h-4" />
-        <h4 className="text-xs font-bold uppercase tracking-wider">{data.label || "Architecture Note"}</h4>
+        <h4 className="text-xs font-bold uppercase tracking-wider text-nexus-text">{data.label || "Architecture Note"}</h4>
       </div>
 
-      <p className="text-[11px] text-amber-200/80 leading-relaxed whitespace-pre-wrap">
+      <p className="text-[11px] text-nexus-muted leading-relaxed whitespace-pre-wrap">
         {data.description || "Add architectural notes, RFC links or operational playbooks here."}
       </p>
 
       <Handle
         type="target"
         position={Position.Top}
-        className="w-2.5 h-2.5 !bg-amber-400 !border !border-zinc-900 rounded-full"
+        className="w-2.5 h-2.5 !bg-amber-400 !border !border-surface rounded-full"
       />
       <Handle
         type="source"
         position={Position.Bottom}
-        className="w-2.5 h-2.5 !bg-amber-400 !border !border-zinc-900 rounded-full"
+        className="w-2.5 h-2.5 !bg-amber-400 !border !border-surface rounded-full"
       />
     </div>
   );
@@ -708,13 +708,13 @@ interface RawApiEdge {
   }
 
   return (
-    <div className="h-screen w-full flex flex-col bg-zinc-950 overflow-hidden select-none">
+    <div className="h-screen w-full flex flex-col bg-bg overflow-hidden select-none">
       {/* Top Header / Action Bar */}
-      <header className="h-14 border-b border-zinc-800/80 bg-zinc-900/90 backdrop-blur-md px-4 flex items-center justify-between z-30 shrink-0">
+      <header className="h-14 border-b border-nexus-border bg-surface/90 backdrop-blur-md px-4 flex items-center justify-between z-30 shrink-0">
         <div className="flex items-center gap-3">
           <button
             onClick={() => router.push("/dashboard/flows")}
-            className="p-1.5 rounded-lg text-zinc-400 hover:text-white hover:bg-zinc-800 transition-colors"
+            className="p-1.5 rounded-lg text-nexus-muted hover:text-nexus-text hover:bg-surface2 transition-colors"
             title="Back to Flows"
           >
             <ArrowLeft className="w-4 h-4" />
@@ -731,13 +731,13 @@ interface RawApiEdge {
                 setFlowMeta((prev) => ({ ...prev, title: e.target.value }));
                 setHasUnsavedChanges(true);
               }}
-              className="bg-transparent border-none text-white font-semibold text-sm focus:outline-none focus:ring-1 focus:ring-purple-500/50 rounded px-1.5 py-0.5"
+              className="bg-transparent border-none text-nexus-text font-semibold text-sm focus:outline-none focus:ring-1 focus:ring-purple-500/50 rounded px-1.5 py-0.5"
             />
           </div>
 
           <div className="flex items-center gap-1.5 text-xs">
             {saving ? (
-              <span className="text-zinc-500 flex items-center gap-1">
+              <span className="text-nexus-muted flex items-center gap-1">
                 <RefreshCw className="w-3 h-3 animate-spin text-purple-400" /> Saving...
               </span>
             ) : hasUnsavedChanges ? (
@@ -762,7 +762,7 @@ interface RawApiEdge {
                   console.error("Failed to update visibility:", err);
                 }
               }}
-              className="ml-2 px-2.5 py-1 bg-zinc-800/80 hover:bg-zinc-800 border border-zinc-700/80 rounded-lg text-[11px] font-medium text-zinc-300 focus:outline-none focus:border-purple-500 cursor-pointer"
+              className="ml-2 px-2.5 py-1 bg-surface2 hover:bg-surface border border-nexus-border rounded-lg text-[11px] font-medium text-nexus-text focus:outline-none focus:border-purple-500 cursor-pointer"
             >
               <option value="workspace">🌐 Workspace (Visible to all)</option>
               <option value="private">🔒 Private (Only creator & admins)</option>
@@ -771,7 +771,7 @@ interface RawApiEdge {
             {/* Live Reload / Sync */}
             <button
               onClick={loadFlow}
-              className="p-1.5 rounded-lg text-zinc-400 hover:text-white hover:bg-zinc-800 transition-colors"
+              className="p-1.5 rounded-lg text-nexus-muted hover:text-nexus-text hover:bg-surface2 transition-colors"
               title="Sync / Refresh latest canvas"
             >
               <RefreshCw className="w-3.5 h-3.5" />

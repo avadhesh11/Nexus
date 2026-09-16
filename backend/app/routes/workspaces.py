@@ -118,8 +118,13 @@ def join_workspace(
         raise HTTPException(status_code=404, detail="Invalid invite code")
 
     # Check if invite code has expired
-    if workspace.invite_expires_at and workspace.invite_expires_at < datetime.now(UTC):
-        raise HTTPException(status_code=410, detail="Invite code has expired")
+    if workspace.invite_expires_at:
+        now_utc = datetime.now(UTC)
+        expires_at = workspace.invite_expires_at
+        if expires_at.tzinfo is None:
+            expires_at = expires_at.replace(tzinfo=UTC)
+        if expires_at < now_utc:
+            raise HTTPException(status_code=410, detail="Invite code has expired")
 
     # check already a member
     existing = db.query(WorkspaceMember).filter(

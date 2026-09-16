@@ -116,29 +116,116 @@
   }
 }
 
-/* Light mode fallback mappings for hex utilities */
-html:not(.dark) {
-  .border-\[\#1e1e2e\] { border-color: var(--nexus-border) !important; }
-  .border-\[\#2a2a3e\] { border-color: var(--nexus-border2) !important; }
-  .text-\[\#e8e8f0\] { color: var(--nexus-text) !important; }
-  .text-\[\#5a5a7a\] { color: var(--nexus-muted) !important; }
-  .text-\[\#7a7a9a\] { color: #64748b !important; }
-  .text-\[\#a8a8c0\] { color: #475569 !important; }
-  .bg-\[\#111118\] { background-color: var(--surface) !important; }
-  .bg-\[\#16161f\] { background-color: var(--surface2) !important; }
-  .bg-\[\#0a0a0f\] { background-color: var(--bg) !important; }
-  .bg-\[\#0d0d1a\] { background-color: #f1f5f9 !important; }
-  .bg-zinc-900\/50, .bg-zinc-900\/60, .bg-zinc-900\/40, .bg-zinc-900\/80, .bg-zinc-900 {
+/* Light mode comprehensive mapping */
+html:not(.dark), html.light {
+  /* Main Canvas & Page background */
+  .bg-\[\#0a0a0f\], .bg-\[\#09090d\], .bg-\[\#09090f\], .bg-\[\#08080c\], .bg-\[\#090912\],
+  .bg-\[\#0b0b14\], .bg-\[\#000000\], .bg-black {
+    background-color: var(--bg) !important;
+  }
+
+  /* Surface / Card backgrounds */
+  .bg-\[\#0a0a14\], .bg-\[\#0b0b10\], .bg-\[\#0c0c14\], .bg-\[\#0d0d12\],
+  .bg-\[\#0e0e14\], .bg-\[\#0e0e15\], .bg-\[\#0f0f18\], .bg-\[\#101018\],
+  .bg-\[\#10101a\], .bg-\[\#10101c\], .bg-\[\#111118\], .bg-\[\#14141e\],
+  .bg-\[\#16161f\], .bg-\[\#181824\], .bg-\[\#1a1a28\], .bg-\[\#1a1a2e\],
+  .bg-\[\#1c1c28\], .bg-\[\#1e1e2e\], .bg-\[\#2a2a3e\] {
     background-color: var(--surface) !important;
+  }
+
+  /* Sub-surfaces & elevated elements (inputs, inner pills, chat bubbles, list items) */
+  .bg-\[\#12121e\], .bg-\[\#12121c\], .bg-\[\#141420\], .bg-\[\#151522\], .bg-\[\#11111c\],
+  .bg-\[\#131320\], .bg-\[\#141422\], .bg-\[\#141424\], .bg-\[\#141426\], .bg-\[\#161626\],
+  .bg-\[\#181828\], .bg-\[\#222238\], .bg-\[\#0e0e18\], .bg-\[\#0d0d16\], .bg-\[\#0d0d1a\] {
+    background-color: var(--surface2) !important;
+  }
+
+  /* Header and bar semi-transparent backdrops */
+  .bg-\[\#0b0b14\]\/90, .bg-\[\#0b0b14\]\/80, .bg-\[\#0e0e18\]\/80, .bg-\[\#111118\]\/60,
+  .bg-\[\#0e0e15\]\/40 {
+    background-color: rgba(255, 255, 255, 0.85) !important;
+  }
+
+  /* Hovers */
+  .hover\:bg-\[\#111118\]:hover, .hover\:bg-\[\#131320\]:hover, .hover\:bg-\[\#141422\]:hover,
+  .hover\:bg-\[\#151522\]:hover, .hover\:bg-\[\#16161f\]:hover, .hover\:bg-\[\#181828\]:hover,
+  .hover\:bg-\[\#1a1a28\]:hover, .hover\:bg-\[\#1a1a2e\]:hover, .hover\:bg-\[\#1c1c28\]:hover,
+  .hover\:bg-\[\#222238\]:hover, .hover\:bg-\[\#2a2a3e\]:hover {
+    background-color: var(--surface2) !important;
+  }
+
+  /* Borders */
+  .border-\[\#1c1c2b\], .border-\[\#1e1e2e\], .border-\[\#1e1e30\], .border-\[\#1a1a28\],
+  .border-\[\#222234\], .border-\[\#222238\], .border-\[\#232336\], .border-\[\#2a2a3e\],
+  .border-\[\#2d2d3f\], .border-\[\#2e2e46\], .border-\[\#3a3a52\], .border-\[\#3a3a5a\],
+  .border-\[\#141420\], .border-\[\#1e1e2e\]\/55 {
+    border-color: var(--nexus-border) !important;
+  }
+
+  .hover\:border-\[\#2a2a3e\]:hover, .hover\:border-\[\#2e2e46\]:hover,
+  .hover\:border-\[\#3a3a52\]:hover, .hover\:border-\[\#3a3a5a\]:hover {
+    border-color: var(--nexus-border2) !important;
+  }
+
+  /* Text Colors */
+  .text-white, .text-\[\#e8e8f0\], .text-\[\#f0f0ff\], .text-\[\#ffffff\] {
+    color: var(--nexus-text) !important;
+  }
+  .hover\:text-white:hover {
+    color: var(--nexus-text) !important;
+  }
+
+  .text-\[\#3a3a5a\], .text-\[\#4a4a6a\], .text-\[\#505068\], .text-\[\#55556e\],
+  .text-\[\#5a5a78\], .text-\[\#5a5a7a\], .text-\[\#606078\], .text-\[\#60607a\],
+  .text-\[\#6a6a84\], .text-\[\#6a6a8a\], .text-\[\#7a7a96\], .text-\[\#7a7a9a\],
+  .text-\[\#8a8a9e\], .text-\[\#8a8aa8\], .text-\[\#9a9ab8\], .text-\[\#a8a8c0\] {
+    color: var(--nexus-muted) !important;
+  }
+
+  /* Zinc classes */
+  .bg-zinc-900\/50, .bg-zinc-900\/60, .bg-zinc-900\/40, .bg-zinc-900\/80, .bg-zinc-900,
+  .bg-zinc-950 {
+    background-color: var(--surface) !important;
+  }
+  .bg-zinc-800, .bg-zinc-800\/50 {
+    background-color: var(--surface2) !important;
   }
   .border-zinc-800, .border-zinc-800\/60, .border-zinc-800\/80, .border-zinc-700 {
     border-color: var(--nexus-border) !important;
   }
-  .text-zinc-200, .text-zinc-300, .text-zinc-400 {
-    color: #334155 !important;
+  .text-zinc-100, .text-zinc-200, .text-zinc-300, .text-zinc-400 {
+    color: var(--nexus-text) !important;
   }
-  .text-zinc-500 {
+  .text-zinc-500, .text-zinc-600 {
     color: var(--nexus-muted) !important;
+  }
+
+  /* React Flow Canvas in Light Mode */
+  .react-flow {
+    background-color: #f8fafc !important;
+  }
+  .react-flow__background pattern circle,
+  .react-flow__background pattern line {
+    stroke: #cbd5e1 !important;
+    fill: #cbd5e1 !important;
+  }
+  .react-flow__controls {
+    background-color: #ffffff !important;
+    border: 1px solid var(--nexus-border) !important;
+    box-shadow: 0 4px 12px rgba(0, 0, 0, 0.05) !important;
+  }
+  .react-flow__controls button {
+    background-color: #ffffff !important;
+    border-bottom: 1px solid var(--nexus-border) !important;
+    color: var(--nexus-text) !important;
+    fill: var(--nexus-text) !important;
+  }
+  .react-flow__controls button:hover {
+    background-color: var(--surface2) !important;
+  }
+  .react-flow__minimap {
+    background-color: #ffffff !important;
+    border: 1px solid var(--nexus-border) !important;
   }
 }
 

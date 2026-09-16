@@ -2,6 +2,8 @@ from google import genai
 from dotenv import load_dotenv
 import os
 
+load_dotenv(".env.local")
+load_dotenv(".env")
 load_dotenv()
 
 client = genai.Client(

@@ -467,20 +467,20 @@ export default function ChatPage() {
   const isDMDisabled = settings?.settings_allow_dm === false;
 
   return (
-    <div className="flex h-full overflow-hidden bg-[#09090f] text-[#e2e2ec]">
+    <div className="flex h-full overflow-hidden bg-bg text-nexus-text">
       {/* Channels & DMs Sidebar */}
-      <aside className="w-72 border-r border-[#1a1a28] bg-[#0c0c16] flex flex-col flex-shrink-0 select-none">
+      <aside className="w-72 border-r border-nexus-border bg-surface flex flex-col flex-shrink-0 select-none">
         {/* Workspace Title Header */}
-        <div className="p-4 border-b border-[#1a1a28] flex items-center justify-between bg-[#0e0e1a]/80 backdrop-blur-md">
+        <div className="p-4 border-b border-nexus-border flex items-center justify-between bg-surface/80 backdrop-blur-md">
           <div className="flex items-center gap-2.5 min-w-0">
             <div className="w-7 h-7 rounded-lg bg-gradient-to-tr from-accent/30 to-accent/10 border border-accent/30 flex items-center justify-center flex-shrink-0">
               <MessageSquare className="w-3.5 h-3.5 text-accent" />
             </div>
             <div className="min-w-0">
-              <h2 className="font-display font-bold text-xs tracking-tight truncate text-white">
+              <h2 className="font-display font-bold text-xs tracking-tight truncate text-nexus-text">
                 {currentWorkspace?.name || "Workspace"}
               </h2>
-              <span className="text-[10px] text-[#60607a] font-mono block">
+              <span className="text-[10px] text-nexus-muted font-mono block">
                 {members.length} member{members.length === 1 ? "" : "s"}
               </span>
             </div>
@@ -491,7 +491,7 @@ export default function ChatPage() {
         <div className="flex-1 overflow-y-auto px-3 py-3.5 space-y-5">
           {/* Public Channels */}
           <div>
-            <div className="text-[10px] font-mono tracking-wider uppercase text-[#5a5a78] px-2 mb-1.5 flex items-center justify-between">
+            <div className="text-[10px] font-mono tracking-wider uppercase text-nexus-muted px-2 mb-1.5 flex items-center justify-between">
               <span className="flex items-center gap-1.5 font-semibold">
                 <Hash className="w-3 h-3" />
                 <span>Channels</span>
@@ -507,17 +507,17 @@ export default function ChatPage() {
               onClick={() => setSelectedRecipientId(null)}
               className={`w-full flex items-center gap-2.5 px-3 py-2.2 rounded-xl text-xs transition-all text-left group ${
                 selectedRecipientId === null
-                  ? "bg-accent/15 border border-accent/30 text-white font-medium shadow-sm"
+                  ? "bg-accent-dim border border-accent-border text-accent font-medium shadow-sm"
                   : generalUnreadCount > 0
-                  ? "bg-[#141424] text-white hover:bg-[#1a1a2e] border border-accent/25"
-                  : "text-[#8a8a9e] hover:bg-[#141422] hover:text-white border border-transparent"
+                  ? "bg-surface2 text-nexus-text hover:bg-surface border border-accent/25"
+                  : "text-nexus-muted hover:bg-surface2 hover:text-nexus-text border border-transparent"
               }`}
             >
               <div
                 className={`w-6 h-6 rounded-lg flex items-center justify-center flex-shrink-0 transition-colors ${
                   selectedRecipientId === null
-                    ? "bg-accent text-white shadow-[0_0_10px_rgba(91,138,255,0.4)]"
-                    : "bg-[#161626] text-[#6a6a84] group-hover:text-white"
+                    ? "bg-accent text-black font-bold shadow-sm"
+                    : "bg-surface2 text-nexus-muted group-hover:text-nexus-text"
                 }`}
               >
                 <Hash className="w-3.5 h-3.5" />
@@ -527,12 +527,12 @@ export default function ChatPage() {
                 <div className="flex items-center justify-between">
                   <span className="font-medium text-xs truncate">general</span>
                   {generalUnreadCount > 0 && selectedRecipientId !== null && (
-                    <span className="min-w-[18px] h-[18px] px-1.5 flex items-center justify-center text-[10px] font-bold font-mono text-white bg-accent rounded-full shadow-[0_0_8px_rgba(91,138,255,0.5)]">
+                    <span className="min-w-[18px] h-[18px] px-1.5 flex items-center justify-center text-[10px] font-bold font-mono text-black bg-accent rounded-full shadow-sm">
                       {generalUnreadCount}
                     </span>
                   )}
                 </div>
-                <span className="text-[10px] text-[#55556e] block truncate">
+                <span className="text-[10px] text-nexus-muted block truncate">
                   Public workspace room
                 </span>
               </div>
@@ -541,7 +541,7 @@ export default function ChatPage() {
 
           {/* Direct Messages Section */}
           <div>
-            <div className="text-[10px] font-mono tracking-wider uppercase text-[#5a5a78] px-2 mb-2 flex items-center justify-between">
+            <div className="text-[10px] font-mono tracking-wider uppercase text-nexus-muted px-2 mb-2 flex items-center justify-between">
               <span className="flex items-center gap-1.5 font-semibold">
                 <UserIcon className="w-3 h-3" />
                 <span>Direct Messages</span>
@@ -556,26 +556,26 @@ export default function ChatPage() {
             {/* Member search if > 4 */}
             {otherMembers.length > 4 && (
               <div className="mb-2 px-1">
-                <div className="flex items-center gap-2 px-2.5 py-1.5 rounded-lg bg-[#12121e] border border-[#1e1e30] focus-within:border-accent/40 text-xs text-[#8a8a9e]">
-                  <Search className="w-3.5 h-3.5 text-[#55556e]" />
+                <div className="flex items-center gap-2 px-2.5 py-1.5 rounded-lg bg-surface2 border border-nexus-border focus-within:border-accent/40 text-xs text-nexus-muted">
+                  <Search className="w-3.5 h-3.5 text-nexus-muted" />
                   <input
                     type="text"
                     placeholder="Find member..."
                     value={memberSearch}
                     onChange={(e) => setMemberSearch(e.target.value)}
-                    className="bg-transparent text-white placeholder-[#55556e] outline-none text-xs w-full"
+                    className="bg-transparent text-nexus-text placeholder:text-nexus-muted outline-none text-xs w-full"
                   />
                 </div>
               </div>
             )}
 
             {isDMDisabled ? (
-              <div className="p-3 rounded-xl bg-[#ff6b6b]/5 border border-[#ff6b6b]/15 text-[11px] text-[#ff6b6b] flex items-start gap-2">
+              <div className="p-3 rounded-xl bg-red-500/10 border border-red-500/20 text-[11px] text-red-400 flex items-start gap-2">
                 <Lock className="w-3.5 h-3.5 mt-0.5 flex-shrink-0" />
                 <span>Direct messaging is disabled by workspace admin.</span>
               </div>
             ) : sortedMembers.length === 0 ? (
-              <div className="text-center py-6 text-[11px] text-[#55556e]">
+              <div className="text-center py-6 text-[11px] text-nexus-muted">
                 {memberSearch ? "No members found" : "Invite members to start private chats"}
               </div>
             ) : (
@@ -591,18 +591,18 @@ export default function ChatPage() {
                       onClick={() => setSelectedRecipientId(m.user_id)}
                       className={`w-full flex items-center gap-2.5 px-3 py-2 rounded-xl text-xs transition-all text-left relative group ${
                         isSelected
-                          ? "bg-accent/15 border border-accent/10 text-white font-medium shadow-sm"
+                          ? "bg-accent-dim border border-accent-border text-accent font-medium shadow-sm"
                           : unreadCount > 0
-                          ? "bg-[#141426] border border-accent/10 text-white shadow-[0_0_10px_rgba(91,138,255,0.08)]"
-                          : "text-[#8a8a9e] hover:bg-[#141422] hover:text-white border border-transparent"
+                          ? "bg-surface2 border border-accent/20 text-nexus-text shadow-sm"
+                          : "text-nexus-muted hover:bg-surface2 hover:text-nexus-text border border-transparent"
                       }`}
                     >
                       <div className="relative flex-shrink-0">
                         <Avatar email={m.email} size={28} />
                         {unreadCount > 0 ? (
-                          <span className="w-2.5 h-2.5 rounded-full bg-accent absolute -top-0.5 -right-0.5 border-2 border-[#0c0c16]" />
+                          <span className="w-2.5 h-2.5 rounded-full bg-accent absolute -top-0.5 -right-0.5 border-2 border-surface" />
                         ) : (
-                          <div className="w-2 h-2 rounded-full bg-emerald-500 absolute -bottom-0.5 -right-0.5 border border-[#0c0c16]" />
+                          <div className="w-2 h-2 rounded-full bg-emerald-500 absolute -bottom-0.5 -right-0.5 border border-surface" />
                         )}
                       </div>
 
@@ -610,13 +610,13 @@ export default function ChatPage() {
                         <div className="flex items-center justify-between gap-1 mb-0.5">
                           <span
                             className={`truncate text-xs ${
-                              unreadCount > 0 ? "font-bold text-white" : "font-medium"
+                              unreadCount > 0 ? "font-bold text-nexus-text" : "font-medium"
                             }`}
                           >
                             {m.email.split("@")[0]}
                           </span>
                           {m.role === "admin" && (
-                            <span className="text-[8px] px-1 py-0.2 rounded bg-[#ffaa00]/10 text-[#ffaa00] font-mono flex-shrink-0">
+                            <span className="text-[8px] px-1 py-0.2 rounded bg-amber-500/10 text-amber-500 font-mono flex-shrink-0">
                               admin
                             </span>
                           )}
@@ -627,7 +627,7 @@ export default function ChatPage() {
                             className={`text-[10px] truncate block ${
                               unreadCount > 0
                                 ? "text-accent font-medium"
-                                : "text-[#55556e]"
+                                : "text-nexus-muted"
                             }`}
                           >
                             {lastMsg
@@ -636,7 +636,7 @@ export default function ChatPage() {
                           </span>
 
                           {lastMsg && !unreadCount && (
-                            <span className="text-[9px] text-[#4a4a62] font-mono flex-shrink-0">
+                            <span className="text-[9px] text-nexus-muted font-mono flex-shrink-0">
                               {formatRelative(lastMsg.created_at)}
                             </span>
                           )}
@@ -646,7 +646,7 @@ export default function ChatPage() {
                       {/* Unread Badge */}
                       {unreadCount > 0 && (
                         <div className="flex-shrink-0 pl-1">
-                          <span className="min-w-[18px] h-[18px] px-1.5 flex items-center justify-center text-[10px] font-bold font-mono text-white bg-[#5b8aff] rounded-full shadow-[0_0_8px_rgba(91,138,255,0.6)]">
+                          <span className="min-w-[18px] h-[18px] px-1.5 flex items-center justify-center text-[10px] font-bold font-mono text-white bg-[#5b8aff] rounded-full shadow-sm">
                             {unreadCount > 99 ? "99+" : unreadCount}
                           </span>
                         </div>
@@ -660,56 +660,56 @@ export default function ChatPage() {
         </div>
 
         {/* User Info Bar at bottom */}
-        <div className="p-3 border-t border-[#1a1a28] bg-[#090912] flex items-center gap-2.5">
+        <div className="p-3 border-t border-nexus-border bg-surface flex items-center gap-2.5">
           <Avatar email={user?.email || "Me"} size={28} />
           <div className="flex-1 min-w-0">
-            <div className="text-xs font-semibold truncate text-white">
+            <div className="text-xs font-semibold truncate text-nexus-text">
               {user?.email?.split("@")[0]}
             </div>
             <div className="text-[10px] text-accent flex items-center gap-1">
               <div className="w-1.5 h-1.5 rounded-full bg-emerald-400" />
-              <span className="text-[#60607a]">Online</span>
+              <span className="text-nexus-muted">Online</span>
             </div>
           </div>
         </div>
       </aside>
 
       {/* Main Chat Area */}
-      <div className="flex-1 flex flex-col h-full overflow-hidden bg-[#09090f]">
+      <div className="flex-1 flex flex-col h-full overflow-hidden bg-bg">
         {/* Chat Window Header */}
-        <div className="border-b border-[#1a1a28] px-6 py-3.5 flex items-center justify-between bg-[#0b0b14]/90 backdrop-blur-md flex-shrink-0">
+        <div className="border-b border-nexus-border px-6 py-3.5 flex items-center justify-between bg-surface/80 backdrop-blur-md flex-shrink-0">
           <div className="flex items-center gap-3">
             {selectedMember ? (
               <>
                 <div className="relative">
                   <Avatar email={selectedMember.email} size={34} />
-                  <div className="w-2.5 h-2.5 rounded-full bg-emerald-500 absolute -bottom-0.5 -right-0.5 border-2 border-[#0b0b14]" />
+                  <div className="w-2.5 h-2.5 rounded-full bg-emerald-500 absolute -bottom-0.5 -right-0.5 border-2 border-surface" />
                 </div>
                 <div>
-                  <div className="text-sm font-bold text-white flex items-center gap-2">
+                  <div className="text-sm font-bold text-nexus-text flex items-center gap-2">
                     <span>{selectedMember.email}</span>
-                    <span className="text-[10px] font-mono px-2 py-0.5 rounded-full bg-[#181828] text-[#8a8a9e] border border-[#222238]">
+                    <span className="text-[10px] font-mono px-2 py-0.5 rounded-full bg-surface2 text-nexus-muted border border-nexus-border">
                       Direct Message
                     </span>
                   </div>
-                  <div className="text-[10px] text-[#55556e] font-mono">
+                  <div className="text-[10px] text-nexus-muted font-mono">
                     Private conversation • Role: {selectedMember.role}
                   </div>
                 </div>
               </>
             ) : (
               <>
-                <div className="w-9 h-9 rounded-xl bg-accent/15 border border-accent/25 flex items-center justify-center text-accent">
+                <div className="w-9 h-9 rounded-xl bg-accent-dim border border-accent-border flex items-center justify-center text-accent">
                   <Hash className="w-4 h-4" />
                 </div>
                 <div>
-                  <div className="text-sm font-bold text-white flex items-center gap-2">
+                  <div className="text-sm font-bold text-nexus-text flex items-center gap-2">
                     <span>general</span>
                     <span className="text-[10px] font-mono px-2 py-0.5 rounded-full bg-accent/10 text-accent border border-accent/20">
                       Public Room
                     </span>
                   </div>
-                  <div className="text-[10px] text-[#55556e] font-mono">
+                  <div className="text-[10px] text-nexus-muted font-mono">
                     All workspace members can view and participate
                   </div>
                 </div>
@@ -718,7 +718,7 @@ export default function ChatPage() {
           </div>
 
           <div className="flex items-center gap-2">
-            <div className="text-[11px] font-mono text-[#60607a] flex items-center gap-1.5 px-3 py-1.2 rounded-lg border border-[#1e1e30] bg-[#10101c]">
+            <div className="text-[11px] font-mono text-nexus-muted flex items-center gap-1.5 px-3 py-1.2 rounded-lg border border-nexus-border bg-surface">
               <Users className="w-3.5 h-3.5 text-accent" />
               <span>{members.length} members</span>
             </div>
@@ -732,20 +732,20 @@ export default function ChatPage() {
               <Spinner className="w-5 h-5 text-accent" />
             </div>
           ) : chatMessages.length === 0 ? (
-            <div className="text-center py-24 text-[#55556e] animate-fade-up max-w-sm mx-auto">
-              <div className="w-14 h-14 rounded-2xl bg-[#12121e] border border-[#1e1e30] flex items-center justify-center mx-auto mb-3 shadow-md">
+            <div className="text-center py-24 text-nexus-muted animate-fade-up max-w-sm mx-auto">
+              <div className="w-14 h-14 rounded-2xl bg-surface2 border border-nexus-border flex items-center justify-center mx-auto mb-3 shadow-md">
                 {selectedMember ? (
                   <UserIcon className="w-6 h-6 text-accent" />
                 ) : (
                   <Hash className="w-6 h-6 text-accent" />
                 )}
               </div>
-              <div className="text-sm font-semibold text-white mb-1">
+              <div className="text-sm font-semibold text-nexus-text mb-1">
                 {selectedMember
                   ? `Direct message with ${selectedMember.email.split("@")[0]}`
                   : "Welcome to #general"}
               </div>
-              <p className="text-xs text-[#7a7a96] leading-relaxed">
+              <p className="text-xs text-nexus-muted leading-relaxed">
                 {selectedMember
                   ? "Send a private message to start collaborating 1-on-1."
                   : "This is the central public channel for team discussions and updates."}
@@ -779,20 +779,26 @@ export default function ChatPage() {
                         <div className="flex items-baseline gap-2 mb-1">
                           <span
                             className={`text-xs font-semibold ${
-                              isMe ? "text-accent" : "text-[#7ea6ff]"
+                              isMe ? "text-accent" : "text-[#5b8aff]"
                             }`}
                           >
                             {msg.sender_email.split("@")[0]}
                           </span>
-                          <span className="text-[10px] text-[#4a4a62] font-mono">
+                          <span className="text-[10px] text-nexus-muted font-mono">
                             {formatTime(msg.created_at)}
                           </span>
                         </div>
                       )}
-                      <div className="text-xs leading-relaxed text-[#dedee8] bg-[#121220]/70 px-3 py-2 rounded-xl border border-[#1a1a2e]/60 hover:border-[#262640] transition-colors inline-block max-w-[92%] break-words shadow-sm">
+                      <div
+                        className={`text-xs leading-relaxed px-3 py-2 rounded-xl border transition-colors inline-block max-w-[92%] break-words shadow-sm ${
+                          isMe
+                            ? "bg-accent/15 border-accent/30 text-nexus-text"
+                            : "bg-surface border-nexus-border text-nexus-text hover:border-nexus-border2"
+                        }`}
+                      >
                         {msg.content}
                         {isOptimistic && (
-                          <span className="text-[9px] text-[#55556e] font-mono ml-2 inline-flex items-center gap-0.5">
+                          <span className="text-[9px] text-nexus-muted font-mono ml-2 inline-flex items-center gap-0.5">
                             <Spinner className="w-2.5 h-2.5 text-accent inline" /> sending...
                           </span>
                         )}
@@ -807,15 +813,15 @@ export default function ChatPage() {
         </div>
 
         {/* Input Dock Bar */}
-        <div className="p-4 border-t border-[#1a1a28] bg-[#0b0b14] flex-shrink-0">
+        <div className="p-4 border-t border-nexus-border bg-surface flex-shrink-0">
           {selectedRecipientId && isDMDisabled ? (
-            <div className="max-w-3xl mx-auto p-3.5 rounded-xl bg-[#ff6b6b]/10 border border-[#ff6b6b]/20 text-xs text-[#ff6b6b] flex items-center gap-2">
+            <div className="max-w-3xl mx-auto p-3.5 rounded-xl bg-red-500/10 border border-red-500/20 text-xs text-red-400 flex items-center gap-2">
               <AlertCircle className="w-4 h-4 flex-shrink-0" />
               <span>Direct messaging has been disabled in this workspace by the administrator.</span>
             </div>
           ) : (
             <div className="max-w-3xl mx-auto flex items-center gap-2.5">
-              <div className="flex-1 flex items-center gap-2 bg-[#121220] border border-[#1e1e32] focus-within:border-accent/60 focus-within:bg-[#141424] rounded-2xl px-4 py-2.5 transition-all shadow-inner">
+              <div className="flex-1 flex items-center gap-2 bg-surface2 border border-nexus-border focus-within:border-accent/60 rounded-2xl px-4 py-2.5 transition-all shadow-inner">
                 <input
                   type="text"
                   value={input}
@@ -826,7 +832,7 @@ export default function ChatPage() {
                       ? `Message @${selectedMember.email.split("@")[0]}...`
                       : "Message #general..."
                   }
-                  className="flex-1 bg-transparent text-xs text-white placeholder-[#55556e] outline-none"
+                  className="flex-1 bg-transparent text-xs text-nexus-text placeholder:text-nexus-muted outline-none"
                 />
               </div>
               <button
@@ -834,8 +840,8 @@ export default function ChatPage() {
                 disabled={!input.trim() || sendMutation.isPending}
                 className={`p-3 rounded-2xl flex-shrink-0 transition-all ${
                   input.trim()
-                    ? "bg-accent text-white shadow-[0_0_15px_rgba(91,138,255,0.4)] hover:brightness-110 active:scale-95 cursor-pointer"
-                    : "bg-[#141422] text-[#4a4a62] cursor-not-allowed border border-[#1e1e30]"
+                    ? "bg-accent text-black font-semibold shadow-md hover:brightness-110 active:scale-95 cursor-pointer"
+                    : "bg-surface2 text-nexus-muted cursor-not-allowed border border-nexus-border"
                 }`}
               >
                 <Send className="w-4 h-4" />

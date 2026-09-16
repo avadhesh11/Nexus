@@ -80,65 +80,98 @@ export default function DocumentsPage() {
     <div className="p-6 max-w-3xl">
       <div className="flex items-center justify-between mb-5 animate-fade-up">
         <div>
-          <div className="text-[10px] text-[#5a5a7a] font-mono tracking-widest mb-1">WORKSPACE DOCS</div>
-          <h2 className="font-display font-bold text-xl">{docs.length} Documents</h2>
+          <div className="text-[10px] text-nexus-muted font-mono tracking-widest mb-1">WORKSPACE DOCS</div>
+          <h2 className="font-display font-bold text-xl text-nexus-text">{docs.length} Documents</h2>
         </div>
-        <button className="nexus-btn-primary text-sm" onClick={() => setShowNew(true)}>
-          <Plus className="w-3.5 h-3.5" />Write New document/content
-        </button>
-        OR
-         <label className="nexus-btn-primary text-sm cursor-pointer">
-  Upload File
-  <input
-    type="file"
-    accept=".txt,.pdf,.docx,.csv,.xlsx,.xls,.md"
-    onChange={handleFileUpload}
-    className="hidden"
-  />
-</label>
+        <div className="flex items-center gap-2">
+          <button className="nexus-btn-primary text-xs" onClick={() => setShowNew(true)}>
+            <Plus className="w-3.5 h-3.5" /> Write New Document
+          </button>
+          <label className="nexus-btn-ghost text-xs cursor-pointer">
+            Upload File
+            <input
+              type="file"
+              accept=".txt,.pdf,.docx,.csv,.xlsx,.xls,.md"
+              onChange={handleFileUpload}
+              className="hidden"
+            />
+          </label>
+        </div>
       </div>
 
       {showNew && (
-        <div className="border border-accent/20 bg-accent/5 rounded-xl p-4 mb-4 animate-fade-up">
-          <input autoFocus className="nexus-input mb-3" value={newTitle} onChange={e => setNewTitle(e.target.value)}
-            placeholder="Document title..." onKeyDown={e => e.key === "Enter" && createMutation.mutate()} />
+        <div className="border border-accent-border bg-accent-dim rounded-xl p-4 mb-4 animate-fade-up">
+          <input
+            autoFocus
+            className="nexus-input mb-3 text-xs"
+            value={newTitle}
+            onChange={(e) => setNewTitle(e.target.value)}
+            placeholder="Document title..."
+            onKeyDown={(e) => e.key === "Enter" && createMutation.mutate()}
+          />
           <div className="flex gap-2">
-            <button className="nexus-btn-primary text-xs py-1.5" onClick={() => createMutation.mutate()} disabled={createMutation.isPending}>
-              {createMutation.isPending ? <Spinner /> : "Create"}
+            <button
+              className="nexus-btn-primary text-xs py-1.5"
+              onClick={() => createMutation.mutate()}
+              disabled={createMutation.isPending}
+            >
+              {createMutation.isPending ? <Spinner className="w-3.5 h-3.5" /> : "Create"}
             </button>
-            <button className="nexus-btn-ghost text-xs py-1.5" onClick={() => setShowNew(false)}>Cancel</button>
+            <button
+              className="nexus-btn-ghost text-xs py-1.5"
+              onClick={() => setShowNew(false)}
+            >
+              Cancel
+            </button>
           </div>
         </div>
       )}
 
       <div className="flex flex-col gap-2">
         {docs.map((doc, i) => (
-        
-          <div key={doc.id}
-            className="group flex items-center gap-3 p-3.5 border border-[#1e1e2e] rounded-xl bg-surface hover:border-[#2a2a3e] hover:bg-surface2 transition-all cursor-pointer animate-fade-up"
+          <div
+            key={doc.id}
+            className="group flex items-center gap-3 p-3.5 border border-nexus-border rounded-xl bg-surface hover:border-nexus-border2 hover:bg-surface2 transition-all cursor-pointer animate-fade-up shadow-sm"
             style={{ animationDelay: i * 0.04 + "s" }}
-            onClick={() =>{  router.push(`/dashboard/documents/${doc.id}`)}}
+            onClick={() => {
+              router.push(`/dashboard/documents/${doc.id}`);
+            }}
           >
-          
-            <div className="w-9 h-9 rounded-lg bg-surface2 border border-[#1e1e2e] flex items-center justify-center text-[#5a5a7a] flex-shrink-0">
+            <div className="w-9 h-9 rounded-lg bg-surface2 border border-nexus-border flex items-center justify-center text-accent flex-shrink-0">
               <FileText className="w-4 h-4" />
             </div>
             <div className="flex-1 min-w-0">
-              <div className="font-medium text-sm truncate">{doc.title}</div>
-              <div className="text-[11px] text-[#5a5a7a] font-mono">Updated {formatRelative(doc.updated_at)}</div>
+              <div className="font-medium text-sm text-nexus-text truncate">{doc.title}</div>
+              <div className="text-[11px] text-nexus-muted font-mono">
+                Updated {formatRelative(doc.updated_at)}
+              </div>
             </div>
-            <button onClick={e => { e.stopPropagation(); deleteMutation.mutate(doc.id); }}
-              className="opacity-0 group-hover:opacity-100 p-1.5 text-[#5a5a7a] hover:text-[#ff6b6b] transition-all">
+            <button
+              onClick={(e) => {
+                e.stopPropagation();
+                deleteMutation.mutate(doc.id);
+              }}
+              className="opacity-0 group-hover:opacity-100 p-1.5 text-nexus-muted hover:text-red-400 transition-all"
+              title="Delete document"
+            >
               <Trash2 className="w-3.5 h-3.5" />
             </button>
-            <span className="text-[#5a5a7a] text-xs">→</span>
+            <span className="text-nexus-muted text-xs">→</span>
           </div>
         ))}
       </div>
 
       {docs.length === 0 && !showNew && (
-        <EmptyState icon="📄" title="No documents yet" desc="Create your first document. The AI will learn from it automatically via the RAG pipeline."
-          action={<button className="nexus-btn-primary text-sm" onClick={() => setShowNew(true)}>Create document</button>} />
+        <EmptyState
+          icon="📄"
+          title="No documents yet"
+          desc="Create your first document. The AI will learn from it automatically via the RAG pipeline."
+          action={
+            <button className="nexus-btn-primary text-xs" onClick={() => setShowNew(true)}>
+              Create document
+            </button>
+          }
+        />
       )}
     </div>
   );

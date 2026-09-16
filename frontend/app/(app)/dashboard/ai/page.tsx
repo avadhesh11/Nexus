@@ -263,11 +263,11 @@ export default function AIPage() {
     <div className="flex h-full overflow-hidden bg-bg relative">
       {/* Sessions Sidebar */}
       <aside
-        className={`border-r border-[#1e1e2e] bg-[#0c0c14] flex flex-col transition-all duration-300 z-20 ${
+        className={`border-r border-nexus-border bg-surface flex flex-col transition-all duration-300 z-20 ${
           sidebarOpen ? "w-64" : "w-0 -translate-x-full overflow-hidden border-none"
         }`}
       >
-        <div className="p-3 border-b border-[#1e1e2e] flex items-center justify-between gap-2">
+        <div className="p-3 border-b border-nexus-border flex items-center justify-between gap-2">
           <button
             onClick={handleNewChat}
             className="flex-1 flex items-center justify-center gap-2 px-3 py-2 rounded-lg bg-accent/10 border border-accent/30 text-accent hover:bg-accent/20 transition-all font-medium text-xs shadow-sm hover:shadow-accent/10"
@@ -282,7 +282,7 @@ export default function AIPage() {
                   clearAllMutation.mutate();
                 }
               }}
-              className="p-2 text-[#5a5a7a] hover:text-[#ff6b6b] hover:bg-[#ff6b6b]/10 rounded-lg transition-colors"
+              className="p-2 text-nexus-muted hover:text-red-400 hover:bg-red-500/10 rounded-lg transition-colors"
               title="Clear all chats"
             >
               <Trash2 className="w-3.5 h-3.5" />
@@ -293,14 +293,14 @@ export default function AIPage() {
         {/* Search */}
         {sessionList.length > 3 && (
           <div className="px-3 pt-2">
-            <div className="flex items-center gap-2 px-2.5 py-1.5 rounded-lg bg-[#14141e] border border-[#1e1e2e] text-xs text-[#7a7a9a]">
-              <Search className="w-3.5 h-3.5 text-[#5a5a7a]" />
+            <div className="flex items-center gap-2 px-2.5 py-1.5 rounded-lg bg-surface2 border border-nexus-border text-xs text-nexus-muted">
+              <Search className="w-3.5 h-3.5 text-nexus-muted" />
               <input
                 type="text"
                 placeholder="Search chats..."
                 value={searchQuery}
                 onChange={(e) => setSearchQuery(e.target.value)}
-                className="bg-transparent text-white placeholder-[#5a5a7a] outline-none text-xs w-full"
+                className="bg-transparent text-nexus-text placeholder:text-nexus-muted outline-none text-xs w-full"
               />
             </div>
           </div>
@@ -308,7 +308,7 @@ export default function AIPage() {
 
         {/* Session List */}
         <div className="flex-1 overflow-y-auto p-2 space-y-1">
-          <div className="text-[9px] text-[#5a5a7a] px-2.5 py-1 font-mono tracking-wider uppercase">
+          <div className="text-[9px] text-nexus-muted px-2.5 py-1 font-mono tracking-wider uppercase">
             Chat History ({filteredSessions.length})
           </div>
 
@@ -317,7 +317,7 @@ export default function AIPage() {
               <Spinner className="w-4 h-4 text-accent" />
             </div>
           ) : filteredSessions.length === 0 ? (
-            <div className="text-center py-8 text-xs text-[#5a5a7a] px-3">
+            <div className="text-center py-8 text-xs text-nexus-muted px-3">
               {searchQuery ? "No matching chats" : "No past conversations. Click 'New Chat' to start!"}
             </div>
           ) : (
@@ -331,13 +331,13 @@ export default function AIPage() {
                   onClick={() => !isEditing && setActiveSessionId(s.id)}
                   className={`group relative flex items-center justify-between px-2.5 py-2 rounded-lg text-xs transition-all cursor-pointer ${
                     isActive
-                      ? "bg-accent/10 border border-accent/30 text-white font-medium shadow-sm"
-                      : "text-[#9a9ab0] hover:bg-[#151522] hover:text-white border border-transparent"
+                      ? "bg-accent-dim border border-accent-border text-accent font-medium shadow-sm"
+                      : "text-nexus-muted hover:bg-surface2 hover:text-nexus-text border border-transparent"
                   }`}
                 >
                   <div className="flex items-center gap-2 min-w-0 flex-1 mr-1">
                     <MessageSquare
-                      className={`w-3.5 h-3.5 flex-shrink-0 ${isActive ? "text-accent" : "text-[#5a5a7a]"}`}
+                      className={`w-3.5 h-3.5 flex-shrink-0 ${isActive ? "text-accent" : "text-nexus-muted"}`}
                     />
                     {isEditing ? (
                       <input
@@ -349,7 +349,7 @@ export default function AIPage() {
                           if (e.key === "Escape") handleCancelRename(e as unknown as React.MouseEvent);
                         }}
                         autoFocus
-                        className="bg-[#1e1e2e] text-white text-xs px-1.5 py-0.5 rounded outline-none border border-accent w-full"
+                        className="bg-surface border border-accent text-nexus-text text-xs px-1.5 py-0.5 rounded outline-none w-full"
                       />
                     ) : (
                       <span className="truncate">{s.title}</span>
@@ -362,14 +362,14 @@ export default function AIPage() {
                       <>
                         <button
                           onClick={(e) => handleSaveRename(s, e)}
-                          className="p-1 hover:text-accent text-[#7a7a9a]"
+                          className="p-1 hover:text-accent text-nexus-muted"
                           title="Save"
                         >
                           <Check className="w-3 h-3" />
                         </button>
                         <button
                           onClick={handleCancelRename}
-                          className="p-1 hover:text-[#ff6b6b] text-[#7a7a9a]"
+                          className="p-1 hover:text-red-400 text-nexus-muted"
                           title="Cancel"
                         >
                           <X className="w-3 h-3" />
@@ -379,7 +379,7 @@ export default function AIPage() {
                       <>
                         <button
                           onClick={(e) => handleStartRename(s, e)}
-                          className="p-1 hover:text-white text-[#5a5a7a]"
+                          className="p-1 hover:text-nexus-text text-nexus-muted"
                           title="Rename"
                         >
                           <Edit2 className="w-3 h-3" />
@@ -389,7 +389,7 @@ export default function AIPage() {
                             e.stopPropagation();
                             deleteMutation.mutate(s.id);
                           }}
-                          className="p-1 hover:text-[#ff6b6b] text-[#5a5a7a]"
+                          className="p-1 hover:text-red-400 text-nexus-muted"
                           title="Delete"
                         >
                           <Trash2 className="w-3 h-3" />
@@ -405,7 +405,7 @@ export default function AIPage() {
 
         {/* Quota Footer */}
         {settings && (
-          <div className="p-3 border-t border-[#1e1e2e] bg-[#090910] text-[11px] text-[#7a7a9a] flex items-center justify-between">
+          <div className="p-3 border-t border-nexus-border bg-surface text-[11px] text-nexus-muted flex items-center justify-between">
             <div className="flex items-center gap-1.5">
               <Zap className="w-3.5 h-3.5 text-accent" />
               <span>Daily AI Limit</span>
@@ -420,13 +420,13 @@ export default function AIPage() {
       </aside>
 
       {/* Main Chat Interface */}
-      <div className="flex-1 flex flex-col h-full overflow-hidden">
+      <div className="flex-1 flex flex-col h-full overflow-hidden bg-bg">
         {/* Header */}
-        <div className="border-b border-[#1e1e2e] px-4 py-2.5 flex items-center justify-between bg-[#0a0a12] flex-shrink-0">
+        <div className="border-b border-nexus-border px-4 py-2.5 flex items-center justify-between bg-surface/80 backdrop-blur-md flex-shrink-0">
           <div className="flex items-center gap-2.5">
             <button
               onClick={() => setSidebarOpen(!sidebarOpen)}
-              className="p-1.5 rounded-lg border border-[#1e1e2e] hover:border-[#2a2a3e] text-[#7a7a9a] hover:text-white transition-colors"
+              className="p-1.5 rounded-lg border border-nexus-border hover:border-nexus-border2 text-nexus-muted hover:text-nexus-text transition-colors"
               title={sidebarOpen ? "Hide sidebar" : "Show sidebar"}
             >
               {sidebarOpen ? <ChevronLeft className="w-4 h-4" /> : <ChevronRight className="w-4 h-4" />}
@@ -435,7 +435,7 @@ export default function AIPage() {
               <Sparkles className="w-3.5 h-3.5 text-accent" />
             </div>
             <div>
-              <div className="text-xs font-bold flex items-center gap-2">
+              <div className="text-xs font-bold flex items-center gap-2 text-nexus-text">
                 <span>
                   {activeSessionId ? sessionList.find((s) => s.id === activeSessionId)?.title || "AI Session" : "New Chat"}
                 </span>
@@ -443,7 +443,7 @@ export default function AIPage() {
                   Gemini 2.5 Flash
                 </span>
               </div>
-              <div className="text-[10px] text-[#5a5a7a] font-mono">Workspace Grounded Intelligence</div>
+              <div className="text-[10px] text-nexus-muted font-mono">Workspace Grounded Intelligence</div>
             </div>
           </div>
 
@@ -452,8 +452,8 @@ export default function AIPage() {
               <div
                 className={`text-[10px] font-mono px-2 py-1 rounded border ${
                   quotaRemaining <= 5
-                    ? "bg-[#ff6b6b]/10 border-[#ff6b6b]/30 text-[#ff6b6b]"
-                    : "bg-[#141420] border-[#1e1e2e] text-[#7a7a9a]"
+                    ? "bg-red-500/10 border-red-500/30 text-red-400"
+                    : "bg-surface2 border-nexus-border text-nexus-muted"
                 }`}
               >
                 {quotaRemaining} prompts remaining today
@@ -471,7 +471,7 @@ export default function AIPage() {
 
         {/* Error Banner */}
         {errorBanner && (
-          <div className="bg-[#ff6b6b]/10 border-b border-[#ff6b6b]/20 px-4 py-2 text-xs text-[#ff6b6b] flex items-center justify-between">
+          <div className="bg-red-500/10 border-b border-red-500/20 px-4 py-2 text-xs text-red-400 flex items-center justify-between">
             <span>{errorBanner}</span>
             <button onClick={() => setErrorBanner(null)}>
               <X className="w-3.5 h-3.5" />
@@ -483,7 +483,7 @@ export default function AIPage() {
         <div className="flex-1 overflow-y-auto px-4 py-4 space-y-4">
           <div className="max-w-3xl mx-auto space-y-4">
             {loadingMessages && messages.length === 0 ? (
-              <div className="flex flex-col items-center justify-center py-20 gap-3 text-[#5a5a7a] text-sm">
+              <div className="flex flex-col items-center justify-center py-20 gap-3 text-nexus-muted text-sm">
                 <Spinner className="w-6 h-6 text-accent" />
                 <span>Loading conversation...</span>
               </div>
@@ -492,8 +492,8 @@ export default function AIPage() {
                 <div className="w-14 h-14 rounded-2xl bg-accent/10 border border-accent/20 flex items-center justify-center mx-auto mb-4 shadow-lg shadow-accent/5">
                   <Bot className="w-7 h-7 text-accent" />
                 </div>
-                <h2 className="font-display font-bold text-xl mb-2">How can I assist your workspace today?</h2>
-                <p className="text-[#5a5a7a] text-xs max-w-md mx-auto leading-relaxed mb-8">
+                <h2 className="font-display font-bold text-xl text-nexus-text mb-2">How can I assist your workspace today?</h2>
+                <p className="text-nexus-muted text-xs max-w-md mx-auto leading-relaxed mb-8">
                   Nexus AI has real-time context of your team&apos;s documents, tasks, and connected GitHub repositories.
                 </p>
 
@@ -519,12 +519,12 @@ export default function AIPage() {
                     <button
                       key={i}
                       onClick={() => setInput(prompt.title)}
-                      className="p-3 rounded-xl border border-[#1e1e2e] bg-[#10101a] hover:border-accent/40 hover:bg-accent/5 transition-all text-left group"
+                      className="p-3 rounded-xl border border-nexus-border bg-surface hover:border-accent/40 hover:bg-accent-dim transition-all text-left group shadow-sm"
                     >
-                      <div className="text-xs font-semibold text-white group-hover:text-accent transition-colors">
+                      <div className="text-xs font-semibold text-nexus-text group-hover:text-accent transition-colors">
                         {prompt.title}
                       </div>
-                      <div className="text-[11px] text-[#5a5a7a] mt-0.5">{prompt.desc}</div>
+                      <div className="text-[11px] text-nexus-muted mt-0.5">{prompt.desc}</div>
                     </button>
                   ))}
                 </div>
@@ -544,7 +544,7 @@ export default function AIPage() {
                       {isUser ? (
                         <Avatar email={user?.email || "User"} size={28} />
                       ) : (
-                        <div className="w-7 h-7 rounded-lg bg-accent/10 border border-accent/30 flex items-center justify-center text-accent">
+                        <div className="w-7 h-7 rounded-lg bg-accent-dim border border-accent-border flex items-center justify-center text-accent">
                           <Sparkles className="w-3.5 h-3.5" />
                         </div>
                       )}
@@ -553,15 +553,15 @@ export default function AIPage() {
                     <div
                       className={`relative group max-w-[82%] rounded-2xl px-4 py-3 text-xs leading-relaxed ${
                         isUser
-                          ? "bg-accent text-[#080811] font-medium rounded-tr-none shadow-md shadow-accent/10"
-                          : "bg-[#12121e] border border-[#1e1e2e] text-[#e0e0f0] rounded-tl-none"
+                          ? "bg-accent text-black font-semibold rounded-tr-none shadow-md"
+                          : "bg-surface border border-nexus-border text-nexus-text rounded-tl-none shadow-sm"
                       }`}
                     >
                       {/* Copy Action for AI Messages */}
                       {!isUser && (
                         <button
                           onClick={() => copyToClipboard(msg.content, index)}
-                          className="absolute top-2 right-2 p-1.5 rounded-md bg-[#1a1a2a] border border-[#2a2a3e] text-[#7a7a9a] hover:text-white opacity-0 group-hover:opacity-100 transition-all"
+                          className="absolute top-2 right-2 p-1.5 rounded-md bg-surface2 border border-nexus-border text-nexus-muted hover:text-nexus-text opacity-0 group-hover:opacity-100 transition-all"
                           title="Copy response"
                         >
                           {copiedIndex === index ? (
@@ -576,7 +576,7 @@ export default function AIPage() {
 
                       {/* Source attribution badge */}
                       {msg.sources && msg.sources > 0 && (
-                        <div className="mt-2.5 pt-2 border-t border-[#1e1e2e] flex items-center gap-1.5 text-[10px] text-[#7a7a9a] font-mono">
+                        <div className="mt-2.5 pt-2 border-t border-nexus-border flex items-center gap-1.5 text-[10px] text-nexus-muted font-mono">
                           <Database className="w-3 h-3 text-accent" />
                           <span>Grounding: {msg.sources} document(s) referenced</span>
                         </div>
@@ -589,10 +589,10 @@ export default function AIPage() {
 
             {loading && (
               <div className="flex gap-3 animate-fade-up">
-                <div className="w-7 h-7 rounded-lg bg-accent/10 border border-accent/30 flex items-center justify-center text-accent flex-shrink-0">
+                <div className="w-7 h-7 rounded-lg bg-accent-dim border border-accent-border flex items-center justify-center text-accent flex-shrink-0">
                   <Sparkles className="w-3.5 h-3.5 animate-spin" />
                 </div>
-                <div className="bg-[#12121e] border border-[#1e1e2e] rounded-2xl rounded-tl-none px-4 py-3 flex items-center gap-2 text-xs text-[#7a7a9a]">
+                <div className="bg-surface border border-nexus-border rounded-2xl rounded-tl-none px-4 py-3 flex items-center gap-2 text-xs text-nexus-muted shadow-sm">
                   <Spinner className="w-3.5 h-3.5 text-accent" />
                   <span>Nexus AI is thinking & retrieving context...</span>
                 </div>
@@ -603,9 +603,9 @@ export default function AIPage() {
         </div>
 
         {/* Input Bar */}
-        <div className="p-3 sm:p-4 border-t border-[#1e1e2e] bg-[#0a0a12] flex-shrink-0">
+        <div className="p-3 sm:p-4 border-t border-nexus-border bg-surface flex-shrink-0">
           <div className="max-w-3xl mx-auto">
-            <div className="flex items-end gap-2 bg-[#12121e] border border-[#1e1e2e] focus-within:border-accent/50 rounded-2xl p-2 transition-colors">
+            <div className="flex items-end gap-2 bg-surface2 border border-nexus-border focus-within:border-accent/50 rounded-2xl p-2 transition-colors">
               <textarea
                 ref={inputRef}
                 value={input}
@@ -613,17 +613,17 @@ export default function AIPage() {
                 onKeyDown={handleKeyDown}
                 placeholder="Ask Nexus AI about your workspace, tasks, documents, or code..."
                 rows={1}
-                className="flex-1 bg-transparent text-xs text-white placeholder-[#5a5a7a] resize-none outline-none py-1.5 px-2 max-h-32 min-h-[24px]"
+                className="flex-1 bg-transparent text-xs text-nexus-text placeholder:text-nexus-muted resize-none outline-none py-1.5 px-2 max-h-32 min-h-[24px]"
               />
               <button
                 onClick={sendMessage}
                 disabled={!input.trim() || loading}
-                className="p-2 rounded-xl bg-accent text-[#080811] hover:bg-accent/90 disabled:opacity-30 disabled:cursor-not-allowed transition-all shadow-md shadow-accent/10 flex-shrink-0"
+                className="p-2 rounded-xl bg-accent text-black font-semibold hover:bg-accent/90 disabled:opacity-30 disabled:cursor-not-allowed transition-all shadow-md shadow-accent/10 flex-shrink-0"
               >
                 <Send className="w-4 h-4" />
               </button>
             </div>
-            <div className="flex items-center justify-between text-[10px] text-[#5a5a7a] mt-1.5 px-1 font-mono">
+            <div className="flex items-center justify-between text-[10px] text-nexus-muted mt-1.5 px-1 font-mono">
               <span>Shift + Enter for new line • Enter to send</span>
               <span>Nexus Grounded AI v2.5</span>
             </div>

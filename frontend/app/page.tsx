@@ -15,9 +15,9 @@ export default function LandingPage() {
   useEffect(() => {
     const checkStatus = async () => {
       try {
-        const rawUrl = process.env.NEXT_PUBLIC_API_URL || "http://localhost:8000/api";
-        const baseUrl = rawUrl.replace(/\/api$/, "");
-        await axios.get(`${baseUrl}/health`, { timeout: 5000 });
+        const Url = process.env.NEXT_PUBLIC_API_URL || "http://localhost:8000";
+     
+        await axios.get(`${Url}/api/health`, { timeout: 5000 });
         setApiStatus("online");
       } catch {
         setApiStatus("offline");

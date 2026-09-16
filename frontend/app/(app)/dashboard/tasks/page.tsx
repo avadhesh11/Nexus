@@ -59,16 +59,16 @@ function TaskCard({
       draggable
       onDragStart={(e) => onDragStart(e, task)}
       onDragEnd={onDragEnd}
-      className={`group relative p-3.5 border rounded-xl bg-[#10101a] transition-all cursor-grab active:cursor-grabbing select-none ${
+      className={`group relative p-3.5 border rounded-xl bg-surface transition-all cursor-grab active:cursor-grabbing select-none ${
         isDragging
           ? "opacity-40 scale-95 border-dashed border-accent"
-          : "border-[#1e1e2e] hover:border-[#2e2e46] hover:bg-[#131320] shadow-sm hover:shadow-md"
+          : "border-nexus-border hover:border-nexus-border2 hover:bg-surface2 shadow-sm hover:shadow-md"
       }`}
     >
       <div className="flex items-start justify-between gap-2 mb-2">
         <div className="flex items-center gap-1.5 flex-1 min-w-0">
-          <GripVertical className="w-3.5 h-3.5 text-[#4a4a6a] group-hover:text-[#7a7a9a] transition-colors flex-shrink-0" />
-          <div className="text-xs font-semibold leading-snug truncate text-white">{task.title}</div>
+          <GripVertical className="w-3.5 h-3.5 text-nexus-muted group-hover:text-nexus-text transition-colors flex-shrink-0" />
+          <div className="text-xs font-semibold leading-snug truncate text-nexus-text">{task.title}</div>
         </div>
         {isAdmin && (
           <button
@@ -76,7 +76,7 @@ function TaskCard({
               e.stopPropagation();
               onDelete(task.id);
             }}
-            className="opacity-0 group-hover:opacity-100 text-[#5a5a7a] hover:text-[#ff6b6b] p-0.5 rounded transition-all flex-shrink-0"
+            className="opacity-0 group-hover:opacity-100 text-nexus-muted hover:text-red-400 p-0.5 rounded transition-all flex-shrink-0"
             title="Delete task"
           >
             <X className="w-3.5 h-3.5" />
@@ -85,7 +85,7 @@ function TaskCard({
       </div>
 
       {task.description && (
-        <div className="text-[11px] text-[#7a7a9a] mb-3 line-clamp-2 leading-relaxed pl-5">
+        <div className="text-[11px] text-nexus-muted mb-3 line-clamp-2 leading-relaxed pl-5">
           {task.description}
         </div>
       )}
@@ -95,30 +95,30 @@ function TaskCard({
           <span className={`${priClass} text-[10px] font-mono uppercase`}>{task.priority}</span>
           {assigneeEmails.length > 0 ? (
             <span
-              className="flex items-center gap-1 px-1.5 py-0.5 rounded bg-[#151522] border border-[#222238] text-[10px] text-[#9a9ab8] font-mono"
+              className="flex items-center gap-1 px-1.5 py-0.5 rounded bg-surface2 border border-nexus-border text-[10px] text-nexus-text font-mono"
               title={`Assigned to:\n${assigneeEmails.join("\n")}`}
             >
               <UserCheck className="w-3 h-3 text-accent" />
               <span className="truncate max-w-[80px]">@{assigneeEmails[0].split("@")[0]}</span>
               {assigneeEmails.length > 1 && (
-                <span className="text-[9px] font-bold text-accent bg-accent/15 px-1 rounded">
+                <span className="text-[9px] font-bold text-accent bg-accent-dim px-1 rounded">
                   +{assigneeEmails.length - 1}
                 </span>
               )}
             </span>
           ) : (
             <span
-              className="flex items-center gap-1 px-1.5 py-0.5 rounded bg-[#12121c] border border-[#1c1c2b] text-[10px] text-[#606078] font-mono"
+              className="flex items-center gap-1 px-1.5 py-0.5 rounded bg-surface2 border border-nexus-border text-[10px] text-nexus-muted font-mono"
               title="Assigned to all workspace members"
             >
-              <Users className="w-3 h-3 text-[#505068]" />
+              <Users className="w-3 h-3 text-nexus-muted" />
               <span>All</span>
             </span>
           )}
         </div>
 
         {task.due_date && (
-          <span className="text-[10px] text-[#5a5a7a] font-mono flex items-center gap-1">
+          <span className="text-[10px] text-nexus-muted font-mono flex items-center gap-1">
             <Clock className="w-3 h-3" />
             {formatDate(task.due_date)}
           </span>
@@ -127,11 +127,11 @@ function TaskCard({
 
       {/* Quick Move Action Buttons on Hover */}
       {task.status !== "done" && (
-        <div className="flex gap-1 mt-2.5 pt-2 border-t border-[#1e1e2e]/60 opacity-0 group-hover:opacity-100 transition-opacity">
+        <div className="flex gap-1 mt-2.5 pt-2 border-t border-nexus-border opacity-0 group-hover:opacity-100 transition-opacity">
           {task.status === "todo" && (
             <button
               onClick={() => onMove(task.id, "in_progress")}
-              className="text-[10px] px-2 py-0.5 rounded border border-[#1e1e2e] text-[#5a5a7a] hover:border-[#5b8aff] hover:text-[#5b8aff] transition-colors font-mono"
+              className="text-[10px] px-2 py-0.5 rounded border border-nexus-border text-nexus-muted hover:border-[#5b8aff] hover:text-[#5b8aff] transition-colors font-mono"
             >
               → In Progress
             </button>
@@ -139,7 +139,7 @@ function TaskCard({
           {task.status === "in_progress" && (
             <button
               onClick={() => onMove(task.id, "done")}
-              className="text-[10px] px-2 py-0.5 rounded border border-[#1e1e2e] text-[#5a5a7a] hover:border-accent hover:text-accent transition-colors font-mono"
+              className="text-[10px] px-2 py-0.5 rounded border border-nexus-border text-nexus-muted hover:border-accent hover:text-accent transition-colors font-mono"
             >
               ✓ Done
             </button>
@@ -339,25 +339,25 @@ export default function TasksPage() {
       {/* Header */}
       <div className="flex items-center justify-between flex-shrink-0 animate-fade-up">
         <div>
-          <div className="text-[10px] text-[#5a5a7a] font-mono tracking-widest mb-1 flex items-center gap-2">
+          <div className="text-[10px] text-nexus-muted font-mono tracking-widest mb-1 flex items-center gap-2">
             <span>PROJECT MANAGEMENT</span>
             {isAdmin ? (
-              <span className="inline-flex items-center gap-1 text-[10px] px-1.5 py-0.2 text-[#7fffb2] bg-[#7fffb2]/10 rounded border border-[#7fffb2]/20 font-mono">
+              <span className="inline-flex items-center gap-1 text-[10px] px-1.5 py-0.2 text-accent bg-accent-dim rounded border border-accent-border font-mono">
                 <ShieldCheck className="w-3 h-3" /> Admin
               </span>
             ) : (
-              <span className="text-[10px] px-1.5 py-0.2 text-[#7a7a9a] bg-[#141420] rounded border border-[#1e1e2e] font-mono">
+              <span className="text-[10px] px-1.5 py-0.2 text-nexus-muted bg-surface2 rounded border border-nexus-border font-mono">
                 Member View
               </span>
             )}
           </div>
-          <h1 className="font-display font-extrabold text-2xl tracking-tight flex items-center gap-2">
+          <h1 className="font-display font-extrabold text-2xl tracking-tight flex items-center gap-2 text-nexus-text">
             <span>Task Board</span>
-            <span className="text-[11px] font-mono font-normal px-2 py-0.5 rounded bg-[#141420] border border-[#1e1e2e] text-[#7a7a9a]">
+            <span className="text-[11px] font-mono font-normal px-2 py-0.5 rounded bg-surface2 border border-nexus-border text-nexus-muted">
               {tasks.length} total tasks
             </span>
           </h1>
-          <p className="text-[#5a5a7a] text-xs mt-0.5">
+          <p className="text-nexus-muted text-xs mt-0.5">
             Drag and drop task cards across columns to seamlessly update their workflow status.
           </p>
         </div>
@@ -381,7 +381,7 @@ export default function TasksPage() {
             <span>New Task</span>
           </button>
         ) : (
-          <div className="text-[11px] text-[#5a5a7a] font-mono bg-[#10101a] border border-[#1e1e2e] px-3 py-1.5 rounded-lg flex items-center gap-1.5">
+          <div className="text-[11px] text-nexus-muted font-mono bg-surface border border-nexus-border px-3 py-1.5 rounded-lg flex items-center gap-1.5">
             <span>Admins can create tasks</span>
           </div>
         )}
@@ -401,12 +401,12 @@ export default function TasksPage() {
               onDrop={(e) => handleDrop(e, col.id)}
               className={`nexus-card flex flex-col overflow-hidden transition-all duration-200 ${
                 isOver
-                  ? "border-accent/60 bg-accent/[0.03] shadow-lg shadow-accent/5 ring-1 ring-accent/30"
-                  : "border-[#1e1e2e] bg-[#0c0c14]"
+                  ? "border-accent/60 bg-accent-dim shadow-lg shadow-accent/5 ring-1 ring-accent/30"
+                  : "border-nexus-border bg-surface2/50"
               }`}
             >
               {/* Column Header */}
-              <div className="flex items-center gap-2 px-4 py-3 border-b border-[#1e1e2e] bg-[#0e0e18]/80 flex-shrink-0">
+              <div className="flex items-center gap-2 px-4 py-3 border-b border-nexus-border bg-surface flex-shrink-0">
                 <div className="w-2 h-2 rounded-full" style={{ background: col.dot }} />
                 <span
                   className="text-xs font-mono font-bold tracking-wider uppercase"
@@ -414,7 +414,7 @@ export default function TasksPage() {
                 >
                   {col.label}
                 </span>
-                <span className="ml-auto text-[11px] font-mono px-2 py-0.5 rounded bg-[#141420] text-[#7a7a9a] border border-[#1e1e2e]">
+                <span className="ml-auto text-[11px] font-mono px-2 py-0.5 rounded bg-surface2 text-nexus-muted border border-nexus-border">
                   {colTasks.length}
                 </span>
               </div>
@@ -438,12 +438,12 @@ export default function TasksPage() {
                   <div
                     className={`text-center py-12 rounded-xl border border-dashed text-xs transition-colors flex flex-col items-center justify-center gap-1.5 ${
                       isOver
-                        ? "border-accent/50 text-accent bg-accent/5"
-                        : "border-[#1e1e2e] text-[#4a4a6a]"
+                        ? "border-accent/50 text-accent bg-accent-dim"
+                        : "border-nexus-border text-nexus-muted"
                     }`}
                   >
                     <span>{isOver ? "Drop task here" : "No tasks in this column"}</span>
-                    <span className="text-[10px] text-[#3a3a5a]">Drag cards here to update status</span>
+                    <span className="text-[10px] text-nexus-muted">Drag cards here to update status</span>
                   </div>
                 )}
               </div>
@@ -455,20 +455,20 @@ export default function TasksPage() {
       {/* New Task Modal */}
       {showModal && (
         <div
-          className="fixed inset-0 bg-black/70 backdrop-blur-sm z-50 flex items-center justify-center animate-fade-in p-4"
+          className="fixed inset-0 bg-black/60 backdrop-blur-sm z-50 flex items-center justify-center animate-fade-in p-4"
           onClick={(e) => e.target === e.currentTarget && setShowModal(false)}
         >
-          <div className="bg-[#0f0f18] border border-[#1e1e2e] rounded-2xl p-6 w-full max-w-lg animate-fade-up shadow-2xl max-h-[92vh] flex flex-col">
-            <div className="flex items-center justify-between mb-4 pb-3 border-b border-[#1e1e2e] flex-shrink-0">
+          <div className="bg-surface border border-nexus-border rounded-2xl p-6 w-full max-w-lg animate-fade-up shadow-2xl max-h-[92vh] flex flex-col">
+            <div className="flex items-center justify-between mb-4 pb-3 border-b border-nexus-border flex-shrink-0">
               <div>
-                <h3 className="font-display font-bold text-base text-white">Create New Task</h3>
-                <p className="text-[11px] text-[#5a5a7a]">
+                <h3 className="font-display font-bold text-base text-nexus-text">Create New Task</h3>
+                <p className="text-[11px] text-nexus-muted">
                   Assign work to team members with optional email alerts
                 </p>
               </div>
               <button
                 onClick={() => setShowModal(false)}
-                className="text-[#5a5a7a] hover:text-white transition-colors p-1"
+                className="text-nexus-muted hover:text-nexus-text transition-colors p-1"
               >
                 <X className="w-4 h-4" />
               </button>
@@ -476,7 +476,7 @@ export default function TasksPage() {
 
             <div className="flex flex-col gap-3.5 overflow-y-auto pr-1 flex-1">
               <div>
-                <label className="block text-[11px] font-mono text-[#7a7a9a] mb-1.5">TASK TITLE</label>
+                <label className="block text-[11px] font-mono text-nexus-muted mb-1.5">TASK TITLE</label>
                 <input
                   autoFocus
                   className="nexus-input text-xs"
@@ -488,7 +488,7 @@ export default function TasksPage() {
               </div>
 
               <div>
-                <label className="block text-[11px] font-mono text-[#7a7a9a] mb-1.5">
+                <label className="block text-[11px] font-mono text-nexus-muted mb-1.5">
                   DESCRIPTION (OPTIONAL)
                 </label>
                 <textarea
@@ -503,9 +503,9 @@ export default function TasksPage() {
               {/* Multi-User Assignment Selector */}
               <div>
                 <div className="flex items-center justify-between mb-1.5">
-                  <label className="text-[11px] font-mono text-[#7a7a9a]">
+                  <label className="text-[11px] font-mono text-nexus-muted">
                     ASSIGN TO{" "}
-                    <span className="text-white font-sans font-medium text-[10px]">
+                    <span className="text-nexus-text font-sans font-medium text-[10px]">
                       {form.assigned_to_ids.length === 0
                         ? "(All Members)"
                         : `(${form.assigned_to_ids.length} selected)`}
@@ -529,8 +529,8 @@ export default function TasksPage() {
                     onClick={() => setForm((p) => ({ ...p, assigned_to_ids: [] }))}
                     className={`text-xs px-3 py-1.5 rounded-lg border font-mono flex items-center gap-1.5 transition-all ${
                       form.assigned_to_ids.length === 0
-                        ? "bg-accent/15 border-accent text-accent font-semibold"
-                        : "bg-[#141420] border-[#1e1e2e] text-[#7a7a9a] hover:border-[#2e2e46] hover:text-white"
+                        ? "bg-accent-dim border-accent text-accent font-semibold"
+                        : "bg-surface2 border-nexus-border text-nexus-muted hover:border-nexus-border2 hover:text-nexus-text"
                     }`}
                   >
                     <Users className="w-3.5 h-3.5" />
@@ -540,7 +540,7 @@ export default function TasksPage() {
                 </div>
 
                 {/* Team Members Multi-Select Grid / List */}
-                <div className="p-2 bg-[#12121e] border border-[#1e1e2e] rounded-xl max-h-36 overflow-y-auto flex flex-col gap-1">
+                <div className="p-2 bg-surface2 border border-nexus-border rounded-xl max-h-36 overflow-y-auto flex flex-col gap-1">
                   {members.map((m) => {
                     const isSelected = form.assigned_to_ids.includes(m.user_id);
                     return (
@@ -549,8 +549,8 @@ export default function TasksPage() {
                         onClick={() => toggleAssignee(m.user_id)}
                         className={`flex items-center justify-between p-1.5 px-2.5 rounded-lg text-xs cursor-pointer select-none transition-all ${
                           isSelected
-                            ? "bg-accent/15 border border-accent/40 text-white"
-                            : "hover:bg-[#181828] text-[#8a8aa8] border border-transparent"
+                            ? "bg-accent-dim border border-accent-border text-accent font-medium"
+                            : "hover:bg-surface text-nexus-muted hover:text-nexus-text border border-transparent"
                         }`}
                       >
                         <div className="flex items-center gap-2 min-w-0">
@@ -558,14 +558,14 @@ export default function TasksPage() {
                             className={`w-3.5 h-3.5 rounded border flex items-center justify-center flex-shrink-0 transition-colors ${
                               isSelected
                                 ? "bg-accent border-accent text-black"
-                                : "border-[#3a3a5a] bg-[#0d0d16]"
+                                : "border-nexus-border bg-surface"
                             }`}
                           >
                             {isSelected && <Check className="w-2.5 h-2.5 stroke-[3]" />}
                           </div>
                           <span className="truncate text-xs font-mono">{m.email}</span>
                         </div>
-                        <span className="text-[10px] uppercase font-mono px-1.5 py-0.2 rounded bg-[#0f0f18] text-[#6a6a8a] border border-[#1e1e2e]">
+                        <span className="text-[10px] uppercase font-mono px-1.5 py-0.2 rounded bg-surface text-nexus-muted border border-nexus-border">
                           {m.role}
                         </span>
                       </div>
@@ -576,7 +576,7 @@ export default function TasksPage() {
 
               <div className="grid grid-cols-2 gap-3">
                 <div>
-                  <label className="block text-[11px] font-mono text-[#7a7a9a] mb-1.5">PRIORITY</label>
+                  <label className="block text-[11px] font-mono text-nexus-muted mb-1.5">PRIORITY</label>
                   <select
                     className="nexus-input text-xs"
                     value={form.priority}
@@ -593,7 +593,7 @@ export default function TasksPage() {
                   </select>
                 </div>
                 <div>
-                  <label className="block text-[11px] font-mono text-[#7a7a9a] mb-1.5">DUE DATE</label>
+                  <label className="block text-[11px] font-mono text-nexus-muted mb-1.5">DUE DATE</label>
                   <input
                     type="date"
                     className="nexus-input text-xs"
@@ -604,19 +604,19 @@ export default function TasksPage() {
               </div>
 
               {/* Alert Assignee via Email Option */}
-              <div className="flex items-start gap-2.5 p-3 rounded-xl bg-[#141420] border border-[#1e1e2e] mt-1">
+              <div className="flex items-start gap-2.5 p-3 rounded-xl bg-surface2 border border-nexus-border mt-1">
                 <input
                   id="notify-assignee"
                   type="checkbox"
                   checked={form.notify_assignee}
                   onChange={(e) => setForm((p) => ({ ...p, notify_assignee: e.target.checked }))}
-                  className="mt-0.5 rounded border-[#2e2e46] bg-[#0c0c14] text-accent focus:ring-accent/20 focus:ring-offset-0 cursor-pointer accent-[#7fffb2]"
+                  className="mt-0.5 rounded border-nexus-border bg-surface text-accent focus:ring-accent/20 focus:ring-offset-0 cursor-pointer"
                 />
                 <label
                   htmlFor="notify-assignee"
-                  className="text-xs text-[#a0a0b8] cursor-pointer select-none"
+                  className="text-xs text-nexus-muted cursor-pointer select-none"
                 >
-                  <span className="font-semibold text-white flex items-center gap-1.5">
+                  <span className="font-semibold text-nexus-text flex items-center gap-1.5">
                     <Mail className="w-3.5 h-3.5 text-accent" />
                     Alert {form.assigned_to_ids.length === 0
                       ? "all workspace members"
@@ -625,7 +625,7 @@ export default function TasksPage() {
                       : `${form.assigned_to_ids.length} assigned members`}{" "}
                     with email
                   </span>
-                  <span className="block text-[11px] text-[#60607a] mt-0.5">
+                  <span className="block text-[11px] text-nexus-muted mt-0.5">
                     Dispatches a formatted task notification with title, priority, and deadline to{" "}
                     {form.assigned_to_ids.length === 0
                       ? "all workspace members"
@@ -636,7 +636,7 @@ export default function TasksPage() {
               </div>
             </div>
 
-            <div className="flex gap-2.5 mt-4 pt-3 border-t border-[#1e1e2e] flex-shrink-0">
+            <div className="flex gap-2.5 mt-4 pt-3 border-t border-nexus-border flex-shrink-0">
               <button
                 className="nexus-btn-primary flex-1 justify-center text-xs py-2"
                 onClick={() => createMutation.mutate()}

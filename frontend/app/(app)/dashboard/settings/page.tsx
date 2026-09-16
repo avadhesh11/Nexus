@@ -144,22 +144,22 @@ export default function SettingsPage() {
       {/* Header */}
       <div className="flex items-center justify-between">
         <div>
-          <div className="text-[10px] text-[#5a5a7a] font-mono tracking-widest mb-1">
+          <div className="text-[10px] text-nexus-muted font-mono tracking-widest mb-1">
             WORKSPACE GOVERNANCE
           </div>
-          <h1 className="font-display font-extrabold text-2xl tracking-tight flex items-center gap-2">
+          <h1 className="font-display font-extrabold text-2xl tracking-tight flex items-center gap-2 text-nexus-text">
             <span>Workspace Settings & Controls</span>
             {isAdmin ? (
-              <span className="text-[10px] font-mono px-2 py-0.5 rounded bg-accent/15 border border-accent/30 text-accent">
+              <span className="text-[10px] font-mono px-2 py-0.5 rounded bg-accent-dim border border-accent-border text-accent">
                 Admin Mode
               </span>
             ) : (
-              <span className="text-[10px] font-mono px-2 py-0.5 rounded bg-[#1e1e2e] text-[#7a7a9a]">
+              <span className="text-[10px] font-mono px-2 py-0.5 rounded bg-surface2 text-nexus-muted border border-nexus-border">
                 Member View
               </span>
             )}
           </h1>
-          <p className="text-[#5a5a7a] text-xs mt-0.5">
+          <p className="text-nexus-muted text-xs mt-0.5">
             Configure team communication permissions, AI usage quotas, and manage members.
           </p>
         </div>
@@ -192,19 +192,19 @@ export default function SettingsPage() {
       <div className="nexus-card p-5">
         <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4">
           <div>
-            <div className="text-xs font-bold text-white mb-1">Workspace Invite Code</div>
-            <div className="text-[11px] text-[#5a5a7a]">
+            <div className="text-xs font-bold text-nexus-text mb-1">Workspace Invite Code</div>
+            <div className="text-[11px] text-nexus-muted">
               Share this code with team members to join{" "}
-              <strong className="text-white">{currentWorkspace?.name}</strong>.
+              <strong className="text-nexus-text">{currentWorkspace?.name}</strong>.
             </div>
           </div>
 
           <div className="flex items-center gap-2">
-            <div className="flex items-center gap-2 px-3 py-1.5 rounded-lg bg-[#141420] border border-[#1e1e2e] font-mono text-xs text-accent">
+            <div className="flex items-center gap-2 px-3 py-1.5 rounded-lg bg-surface2 border border-nexus-border font-mono text-xs text-accent">
               <span>{currentWorkspace?.invite_code}</span>
               <button
                 onClick={copyInvite}
-                className="hover:text-white transition-colors"
+                className="hover:text-nexus-text text-nexus-muted transition-colors"
                 title="Copy code"
               >
                 {copied ? <Check className="w-3.5 h-3.5 text-accent" /> : <Copy className="w-3.5 h-3.5" />}
@@ -230,20 +230,20 @@ export default function SettingsPage() {
 
       {/* Governance & Control Center */}
       <div className="nexus-card p-5 space-y-5">
-        <div className="flex items-center gap-2 pb-3 border-b border-[#1e1e2e]">
+        <div className="flex items-center gap-2 pb-3 border-b border-nexus-border">
           <Shield className="w-4 h-4 text-accent" />
-          <span className="font-display font-bold text-sm">Policy & Feature Controls</span>
+          <span className="font-display font-bold text-sm text-nexus-text">Policy & Feature Controls</span>
         </div>
 
         <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
           {/* Direct Messaging Toggle */}
-          <div className="p-4 rounded-xl border border-[#1e1e2e] bg-[#101018] flex items-start justify-between gap-3">
+          <div className="p-4 rounded-xl border border-nexus-border bg-surface2/40 flex items-start justify-between gap-3">
             <div className="space-y-1">
-              <div className="flex items-center gap-2 text-xs font-semibold text-white">
+              <div className="flex items-center gap-2 text-xs font-semibold text-nexus-text">
                 <MessageSquare className="w-3.5 h-3.5 text-accent" />
                 <span>Direct Messaging (1-on-1)</span>
               </div>
-              <p className="text-[11px] text-[#7a7a9a] leading-relaxed">
+              <p className="text-[11px] text-nexus-muted leading-relaxed">
                 Allow members to initiate private, 1-on-1 direct message conversations with each other.
               </p>
             </div>
@@ -255,18 +255,18 @@ export default function SettingsPage() {
                 onChange={(e) => setAllowDM(e.target.checked)}
                 className="sr-only peer"
               />
-              <div className="w-9 h-5 bg-[#2a2a3e] peer-focus:outline-none rounded-full peer peer-checked:after:translate-x-full peer-checked:after:border-white after:content-[''] after:absolute after:top-[2px] after:left-[2px] after:bg-white after:border-gray-300 after:border after:rounded-full after:h-4 after:w-4 after:transition-all peer-checked:bg-accent disabled:opacity-40" />
+              <div className="w-9 h-5 bg-surface2 border border-nexus-border peer-focus:outline-none rounded-full peer peer-checked:after:translate-x-full peer-checked:after:border-white after:content-[''] after:absolute after:top-[2px] after:left-[2px] after:bg-white after:border-gray-300 after:border after:rounded-full after:h-4 after:w-4 after:transition-all peer-checked:bg-accent disabled:opacity-40" />
             </label>
           </div>
 
           {/* Document Uploads Toggle */}
-          <div className="p-4 rounded-xl border border-[#1e1e2e] bg-[#101018] flex items-start justify-between gap-3">
+          <div className="p-4 rounded-xl border border-nexus-border bg-surface2/40 flex items-start justify-between gap-3">
             <div className="space-y-1">
-              <div className="flex items-center gap-2 text-xs font-semibold text-white">
+              <div className="flex items-center gap-2 text-xs font-semibold text-nexus-text">
                 <UploadCloud className="w-3.5 h-3.5 text-accent" />
                 <span>Document & File Uploads</span>
               </div>
-              <p className="text-[11px] text-[#7a7a9a] leading-relaxed">
+              <p className="text-[11px] text-nexus-muted leading-relaxed">
                 Allow workspace members to upload PDF, DOCX, and TXT files for AI grounding.
               </p>
             </div>
@@ -278,14 +278,14 @@ export default function SettingsPage() {
                 onChange={(e) => setAllowUploads(e.target.checked)}
                 className="sr-only peer"
               />
-              <div className="w-9 h-5 bg-[#2a2a3e] peer-focus:outline-none rounded-full peer peer-checked:after:translate-x-full peer-checked:after:border-white after:content-[''] after:absolute after:top-[2px] after:left-[2px] after:bg-white after:border-gray-300 after:border after:rounded-full after:h-4 after:w-4 after:transition-all peer-checked:bg-accent disabled:opacity-40" />
+              <div className="w-9 h-5 bg-surface2 border border-nexus-border peer-focus:outline-none rounded-full peer peer-checked:after:translate-x-full peer-checked:after:border-white after:content-[''] after:absolute after:top-[2px] after:left-[2px] after:bg-white after:border-gray-300 after:border after:rounded-full after:h-4 after:w-4 after:transition-all peer-checked:bg-accent disabled:opacity-40" />
             </label>
           </div>
 
           {/* Daily AI Rate Limit */}
-          <div className="p-4 rounded-xl border border-[#1e1e2e] bg-[#101018] space-y-3">
+          <div className="p-4 rounded-xl border border-nexus-border bg-surface2/40 space-y-3">
             <div className="flex items-center justify-between">
-              <div className="flex items-center gap-2 text-xs font-semibold text-white">
+              <div className="flex items-center gap-2 text-xs font-semibold text-nexus-text">
                 <Zap className="w-3.5 h-3.5 text-accent" />
                 <span>Daily AI Quota per User</span>
               </div>
@@ -293,7 +293,7 @@ export default function SettingsPage() {
                 {aiLimit === 0 ? "Unlimited" : `${aiLimit} msgs / day`}
               </span>
             </div>
-            <p className="text-[11px] text-[#7a7a9a] leading-relaxed">
+            <p className="text-[11px] text-nexus-muted leading-relaxed">
               Limit the maximum number of AI prompts each team member can send every 24 hours. (0 = unlimited).
             </p>
             {isAdmin && (
@@ -305,7 +305,7 @@ export default function SettingsPage() {
                   step="10"
                   value={aiLimit}
                   onChange={(e) => setAiLimit(Number(e.target.value))}
-                  className="w-full accent-accent bg-[#1e1e2e] rounded-lg h-1.5 cursor-pointer"
+                  className="w-full accent-accent bg-surface2 rounded-lg h-1.5 cursor-pointer"
                 />
                 <div className="flex gap-1">
                   {[10, 50, 100, 0].map((preset) => (
@@ -314,8 +314,8 @@ export default function SettingsPage() {
                       onClick={() => setAiLimit(preset)}
                       className={`text-[10px] px-2 py-0.5 rounded border transition-colors font-mono ${
                         aiLimit === preset
-                          ? "bg-accent text-[#080811] border-accent font-bold"
-                          : "border-[#2a2a3e] text-[#7a7a9a] hover:text-white"
+                          ? "bg-accent text-black border-accent font-bold"
+                          : "border-nexus-border text-nexus-muted hover:text-nexus-text bg-surface"
                       }`}
                     >
                       {preset === 0 ? "∞" : preset}
@@ -327,13 +327,13 @@ export default function SettingsPage() {
           </div>
 
           {/* Restrict Invite Code */}
-          <div className="p-4 rounded-xl border border-[#1e1e2e] bg-[#101018] flex items-start justify-between gap-3">
+          <div className="p-4 rounded-xl border border-nexus-border bg-surface2/40 flex items-start justify-between gap-3">
             <div className="space-y-1">
-              <div className="flex items-center gap-2 text-xs font-semibold text-white">
+              <div className="flex items-center gap-2 text-xs font-semibold text-nexus-text">
                 <Lock className="w-3.5 h-3.5 text-accent" />
                 <span>Restrict Invite Visibility</span>
               </div>
-              <p className="text-[11px] text-[#7a7a9a] leading-relaxed">
+              <p className="text-[11px] text-nexus-muted leading-relaxed">
                 When enabled, only Workspace Admins can view or copy the workspace invite code.
               </p>
             </div>
@@ -345,7 +345,7 @@ export default function SettingsPage() {
                 onChange={(e) => setRestrictInvites(e.target.checked)}
                 className="sr-only peer"
               />
-              <div className="w-9 h-5 bg-[#2a2a3e] peer-focus:outline-none rounded-full peer peer-checked:after:translate-x-full peer-checked:after:border-white after:content-[''] after:absolute after:top-[2px] after:left-[2px] after:bg-white after:border-gray-300 after:border after:rounded-full after:h-4 after:w-4 after:transition-all peer-checked:bg-accent disabled:opacity-40" />
+              <div className="w-9 h-5 bg-surface2 border border-nexus-border peer-focus:outline-none rounded-full peer peer-checked:after:translate-x-full peer-checked:after:border-white after:content-[''] after:absolute after:top-[2px] after:left-[2px] after:bg-white after:border-gray-300 after:border after:rounded-full after:h-4 after:w-4 after:transition-all peer-checked:bg-accent disabled:opacity-40" />
             </label>
           </div>
         </div>
@@ -353,14 +353,14 @@ export default function SettingsPage() {
 
       {/* Member Governance & Roles */}
       <div className="nexus-card p-5 space-y-4">
-        <div className="flex items-center justify-between pb-3 border-b border-[#1e1e2e]">
+        <div className="flex items-center justify-between pb-3 border-b border-nexus-border">
           <div className="flex items-center gap-2">
             <Users className="w-4 h-4 text-accent" />
-            <span className="font-display font-bold text-sm">
+            <span className="font-display font-bold text-sm text-nexus-text">
               Workspace Members ({members.length})
             </span>
           </div>
-          <span className="text-[11px] text-[#5a5a7a] font-mono">
+          <span className="text-[11px] text-nexus-muted font-mono">
             {members.filter((m) => m.role === "admin").length} Admins
           </span>
         </div>
@@ -368,38 +368,38 @@ export default function SettingsPage() {
         <div className="overflow-x-auto">
           <table className="w-full text-left text-xs">
             <thead>
-              <tr className="border-b border-[#1e1e2e] text-[#5a5a7a] font-mono text-[10px] uppercase">
+              <tr className="border-b border-nexus-border text-nexus-muted font-mono text-[10px] uppercase">
                 <th className="py-2.5 px-3">Member</th>
                 <th className="py-2.5 px-3">Role</th>
                 <th className="py-2.5 px-3">Joined Date</th>
                 {isAdmin && <th className="py-2.5 px-3 text-right">Actions</th>}
               </tr>
             </thead>
-            <tbody className="divide-y divide-[#1e1e2e]">
+            <tbody className="divide-y divide-nexus-border">
               {members.map((m) => {
                 const isOwner = m.user_id === currentWorkspace?.owner_id;
                 const isSelf = m.user_id === user?.id;
 
                 return (
-                  <tr key={m.id} className="hover:bg-[#12121e]/50 transition-colors">
+                  <tr key={m.id} className="hover:bg-surface2/60 transition-colors">
                     <td className="py-3 px-3">
                       <div className="flex items-center gap-2.5">
                         <Avatar email={m.email} size={28} />
                         <div>
-                          <div className="font-medium text-white flex items-center gap-1.5">
+                          <div className="font-medium text-nexus-text flex items-center gap-1.5">
                             <span>{m.email.split("@")[0]}</span>
                             {isSelf && (
-                              <span className="text-[9px] px-1.5 py-0.2 rounded bg-accent/15 text-accent font-mono">
+                              <span className="text-[9px] px-1.5 py-0.2 rounded bg-accent-dim text-accent font-mono">
                                 you
                               </span>
                             )}
                             {isOwner && (
-                              <span className="text-[9px] px-1.5 py-0.2 rounded bg-[#ffaa00]/15 text-[#ffaa00] font-mono">
+                              <span className="text-[9px] px-1.5 py-0.2 rounded bg-amber-500/15 text-amber-500 font-mono">
                                 owner
                               </span>
                             )}
                           </div>
-                          <div className="text-[10px] text-[#5a5a7a]">{m.email}</div>
+                          <div className="text-[10px] text-nexus-muted">{m.email}</div>
                         </div>
                       </div>
                     </td>
@@ -412,7 +412,7 @@ export default function SettingsPage() {
                             onChange={(e) =>
                               updateRoleMutation.mutate({ memberId: m.id, role: e.target.value })
                             }
-                            className="bg-[#141420] border border-[#2a2a3e] rounded-lg px-2 py-1 text-xs text-white outline-none focus:border-accent"
+                            className="bg-surface2 border border-nexus-border rounded-lg px-2 py-1 text-xs text-nexus-text outline-none focus:border-accent"
                           >
                             <option value="admin">Admin</option>
                             <option value="member">Member</option>
@@ -423,8 +423,8 @@ export default function SettingsPage() {
                         <span
                           className={`inline-block px-2 py-0.5 rounded text-[10px] font-mono uppercase ${
                             m.role === "admin"
-                              ? "bg-accent/15 text-accent border border-accent/20"
-                              : "bg-[#1e1e2e] text-[#7a7a9a]"
+                              ? "bg-accent-dim text-accent border border-accent-border"
+                              : "bg-surface2 text-nexus-muted"
                           }`}
                         >
                           {m.role}
@@ -432,7 +432,7 @@ export default function SettingsPage() {
                       )}
                     </td>
 
-                    <td className="py-3 px-3 text-[#7a7a9a] font-mono text-[11px]">
+                    <td className="py-3 px-3 text-nexus-muted font-mono text-[11px]">
                       {formatDate(m.joined_at)}
                     </td>
 
@@ -446,7 +446,7 @@ export default function SettingsPage() {
                                   onClick={() =>
                                     updateRoleMutation.mutate({ memberId: m.id, role: "admin" })
                                   }
-                                  className="flex items-center gap-1 px-2 py-1 rounded bg-accent/10 border border-accent/20 text-accent hover:bg-accent/20 text-[11px] font-medium transition-colors"
+                                  className="flex items-center gap-1 px-2 py-1 rounded bg-accent-dim border border-accent-border text-accent hover:bg-accent/20 text-[11px] font-medium transition-colors"
                                   title="Promote this user to Admin"
                                 >
                                   <Shield className="w-3 h-3" />
@@ -457,7 +457,7 @@ export default function SettingsPage() {
                                   onClick={() =>
                                     updateRoleMutation.mutate({ memberId: m.id, role: "member" })
                                   }
-                                  className="flex items-center gap-1 px-2 py-1 rounded bg-[#1e1e2e] hover:bg-[#2a2a3e] text-[#7a7a9a] hover:text-white text-[11px] transition-colors"
+                                  className="flex items-center gap-1 px-2 py-1 rounded bg-surface2 hover:bg-surface text-nexus-muted hover:text-nexus-text text-[11px] transition-colors border border-nexus-border"
                                   title="Demote to Member"
                                 >
                                   <span>Demote to Member</span>
@@ -470,7 +470,7 @@ export default function SettingsPage() {
                                     removeMemberMutation.mutate(m.id);
                                   }
                                 }}
-                                className="p-1.5 text-[#5a5a7a] hover:text-[#ff6b6b] hover:bg-[#ff6b6b]/10 rounded-lg transition-colors"
+                                className="p-1.5 text-nexus-muted hover:text-red-400 hover:bg-red-500/10 rounded-lg transition-colors"
                                 title="Remove member"
                               >
                                 <Trash2 className="w-3.5 h-3.5" />

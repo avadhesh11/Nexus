@@ -263,10 +263,16 @@ def refresh_token(
 
 
 @router.post("/logout")
-def logout(response: Response):
+def logout( request: Request,response: Response):
     secure = True if PRODUCTION else False
     samesite = "none" if PRODUCTION else "lax"
+    token = request.cookies.get("refresh_token")
 
+    if not token:
+        raise HTTPException(
+            status_code=401,
+            detail="No refresh token"
+        )
     response.delete_cookie(
         "access_token",
         secure=secure,
