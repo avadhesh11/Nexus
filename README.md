@@ -56,10 +56,10 @@ Built on a **ReAct Agentic LangGraph Architecture**, **pgvector RAG**, **Redis C
 
 ---
 
-### ⚡ 3. High-Performance Redis Caching & Zero-Cost Architecture
-- **Sub-Millisecond Read Caching**: Redis-backed cache for high-frequency activity polling (`/workspaces/{id}/activity`), reducing DB load by up to 80%.
-- **LLM Development Fingerprint Cache**: SHA256 hashing in `development_cache.py` to skip redundant LLM inference (0ms latency, $0 token cost).
-- **Automatic In-Memory Fallback**: Seamless local in-memory fallback if Redis is temporarily offline.
+### ⚡ 3. High-Performance Redis Caching & Smart Invalidation
+- **Redis Activity Cache**: Caches high-frequency activity polling (`/workspaces/{id}/activity`), reducing median response latency by **92%** (634 ms → 49 ms) and P95 latency by **94%** (1,184 ms → 69 ms).
+- **LLM Development Fingerprint Cache**: Computes deterministic SHA-256 fingerprints in `utils/development_cache.py` to skip redundant LLM inference when repository activity has not changed ($0 token cost and instant cached responses).
+- **Automatic In-Memory Fallback**: Seamless in-memory dictionary fallback if Redis is temporarily unreachable.
 - **Zero-Blocking Next.js Fonts**: Pre-optimized typography using `next/font/google` (`Syne`, `DM Sans`, `DM Mono`).
 - **Parallelized Auth/Workspace Initialization**: Eliminated loading screen waterfalls with concurrent `Promise.all` fetching.
 
@@ -135,13 +135,13 @@ Built on a **ReAct Agentic LangGraph Architecture**, **pgvector RAG**, **Redis C
 
 | Layer | Technologies |
 |---|---|
-| **Frontend** | Next.js 14 (App Router), TypeScript, Tailwind CSS, Lucide Icons, `@xyflow/react`, `html-to-image`, Zustand, TanStack Query, TipTap |
-| **Backend API** | FastAPI, SQLAlchemy ORM, Pydantic v2, Uvicorn, Python-JOSE, Passlib (Bcrypt) |
-| **Cache & Performance** | Redis 7, Connection Pooling, SHA256 Fingerprint Caching, `next/font/google` |
-| **Agentic AI & RAG** | LangGraph, LangChain, Google Gemini 2.5 Flash, Google `text-embedding-004`, LangSmith |
-| **Database & Realtime** | PostgreSQL, pgvector extension, Supabase Storage, Supabase Realtime WebSockets |
-| **Integrations** | GitHub REST API, GitHub Apps (RS256 JWT Auth), HMAC-SHA256 Webhooks, SMTP Mailer |
-| **DevOps & Tooling** | Docker, Docker Compose, PyMuPDF, python-docx, httpx |
+| **Frontend** | Next.js 14 (App Router), TypeScript, Tailwind CSS, Lucide Icons, `@xyflow/react`, `html-to-image`, Zustand, TanStack Query, TipTap, Axios |
+| **Backend API** | FastAPI, SQLAlchemy ORM, Pydantic v2, Uvicorn, Python-JOSE / PyJWT, Passlib (Argon2), SlowAPI |
+| **Cache & Performance** | Redis 7, Connection Pooling, SHA-256 Fingerprint Caching, `next/font/google` |
+| **Agentic AI & RAG** | LangGraph (`create_react_agent`), LangChain Core, Google Gemini 2.5 Flash, Google `text-embedding-004`, LangSmith |
+| **Database & Realtime** | PostgreSQL 16, pgvector extension, Supabase Storage, Supabase Realtime WebSockets |
+| **Integrations** | GitHub REST API, GitHub Apps (RS256 JWT Auth), GitHub OAuth, HMAC-SHA256 Webhooks, SMTP Mailer |
+| **DevOps & Tooling** | Docker, Docker Compose, PyMuPDF, python-docx, openpyxl, httpx, Locust |
 
 ---
 
@@ -323,9 +323,12 @@ npm run dev
 ### 🔐 Authentication
 | Method | Endpoint | Description |
 |---|---|---|
-| `POST` | `/api/auth/register` | Register new user account |
-| `POST` | `/api/auth/login` | Login and receive JWT access token |
+| `POST` | `/api/auth/register` | Register new user account (Argon2 hashed, rate-limited) |
+| `POST` | `/api/auth/login` | Login and set HttpOnly access & refresh cookies |
+| `POST` | `/api/auth/refresh` | Rotate access token using 7-day refresh cookie |
 | `GET` | `/api/auth/me` | Fetch authenticated user profile |
+| `GET` | `/api/auth/github` | Initiate GitHub OAuth authorization flow |
+| `GET` | `/api/auth/github/callback` | Handle GitHub OAuth callback |
 
 ### 🏢 Workspaces & Members
 | Method | Endpoint | Description |
@@ -333,6 +336,7 @@ npm run dev
 | `POST` | `/api/workspaces/` | Create new workspace |
 | `GET` | `/api/workspaces/` | List user's workspaces |
 | `GET` | `/api/workspaces/{id}` | Get workspace details |
+| `DELETE` | `/api/workspaces/{id}` | Delete workspace (owner only) |
 | `POST` | `/api/workspaces/join/{code}` | Join workspace via invite code |
 | `POST` | `/api/workspaces/{id}/regenerate-invite` | Regenerate 7-day invite code |
 | `GET` | `/api/workspaces/{id}/activity` | Real-time workspace activity feed (Redis cached) |
@@ -362,9 +366,12 @@ npm run dev
 | `GET` | `/api/integrations/github/repositories` | List monitored repositories |
 | `POST` | `/api/integrations/github/repositories/sync` | Sync & prune repositories & commits |
 | `POST` | `/api/integrations/github/repositories/toggle` | Toggle repository tracking |
+| `POST` | `/api/integrations/github/sync-activity` | Trigger on-demand commit/PR sync |
 | `GET` | `/api/github/since-last-seen` | AI "Since You Were Away" executive digest |
 | `POST` | `/api/webhooks/github` | Webhook gateway (HMAC-SHA256 verified) |
+| `GET` | `/api/tasks/{t_id}/github-links` | List PRs linked or suggested for task |
 | `POST` | `/api/tasks/{t_id}/suggestions/{s_id}/accept` | Accept PR-to-task correlation |
+| `POST` | `/api/tasks/{t_id}/suggestions/{s_id}/dismiss` | Dismiss PR-to-task correlation |
 
 ### 📋 Tasks & Board
 | Method | Endpoint | Description |
@@ -382,23 +389,61 @@ npm run dev
 | `GET` | `/api/documents/{id}` | Get document content |
 | `PATCH` | `/api/documents/{id}` | Update document (auto-re-embeds) |
 | `DELETE` | `/api/documents/{id}` | Delete document and vector embeddings |
-| `POST` | `/api/documents/upload` | Upload & extract PDF/DOCX to RAG |
+| `POST` | `/api/documents/upload` | Upload & extract PDF/DOCX/CSV to RAG |
 
 ### 💬 Real-Time Chat
 | Method | Endpoint | Description |
 |---|---|---|
 | `POST` | `/api/chat/{ws_id}/messages` | Send channel or private DM |
 | `GET` | `/api/chat/{ws_id}/messages` | Query chat history (public or DMs) |
+| `GET` | `/api/chat/{ws_id}/inbox` | List DM conversation partners & unread threads |
+
+---
+
+## 📊 Performance & Load Testing Benchmarks
+
+> **Environment Note**: All benchmarks below were conducted on a **local development setup** (single-node Uvicorn process on local machine, local PostgreSQL 16 Docker container, and Redis cache instance) to measure baseline characteristics, cache efficiency, and concurrency behavior under controlled load.
+
+### 1. Controlled Cold vs. Warm Redis Cache Benchmark
+Measured using [`benchmark_cache.py`](file:///backend/app/benchmark_cache.py) against the `/api/workspaces/{id}/activity` endpoint, isolating cache state as the single variable on identical DB data:
+
+| Cache State | Runs ($N$) | Median ($P_{50}$) | $P_{95}$ Latency | Average Latency |
+|---|---|---|---|---|
+| **Cold Cache** *(Keys evicted before each run)* | 5 | **634 ms** | **1,184 ms** | **606 ms** |
+| **Warm Cache** *(Keys kept alive in Redis)* | 30 | **49 ms** | **69 ms** | **50 ms** |
+| **Improvement** | — | **+92.2% reduction** | **+94.2% reduction** | **+91.7% reduction** |
+
+- **Key Takeaway**: Redis caching reduces database query serialization and aggregation overhead by over **12x**, dropping median request latency from ~634 ms down to ~49 ms.
+
+---
+
+### 2. Concurrency & Realistic Load Testing (Locust)
+Simulated using [`locustfile.py`](file:///backend/app/locustfile.py) with **300 concurrent virtual users** executing an authenticated mixed workload (Workspace listing: ~33%, Documents: ~22%, Tasks: ~22%, Activity feed: ~22%) with a realistic `between(1, 3)` second human think time:
+
+- **Virtual Concurrent Users**: 300 active authenticated sessions
+- **Sustained Throughput**: **~21 RPS** under realistic user pacing
+- **Stability**: Handled concurrent sessions with zero server crashes or unhandled 500 exceptions across core CRUD & listing routes on a single development server instance.
+
+---
+
+### 3. API Rate Limiting Validation
+Tested registration burst protection with 300 virtual users attempting concurrent account creation against the configured **100 req/min** registration limit:
+
+- **Allowed Requests**: First 100 requests successfully registered with Argon2 password hashing.
+- **Enforced Rate Limit**: 200 excess requests rejected with `HTTP 429 Too Many Requests`.
+- **Result**: Confirmed protection against CPU exhaustion from rapid Argon2 password hashing bursts under traffic spikes.
 
 ---
 
 ## 🔒 Security & Privacy
 
-- **Stateless JWT Tokens**: 7-day cryptographically signed authentication.
-- **HMAC-SHA256 Webhook Verification**: Cryptographic validation on every incoming GitHub webhook payload.
-- **Granular Role-Based Access Control**: Server-side permission guards on admin actions, task mutation, flow visibility, and workspace settings.
+- **Dual-Token Cookie Authentication**: Short-lived access tokens (15 min) and 7-day refresh tokens securely isolated in HttpOnly, SameSite cookies to protect against XSS token theft.
+- **Argon2 Password Hashing**: State-of-the-art memory-hard hashing algorithm (`argon2-cffi`) preventing GPU-accelerated dictionary attacks.
+- **API Rate Limiting**: SlowAPI token-bucket rate limiting across critical routes (registration burst mitigation, auth brute-force defense).
+- **HMAC-SHA256 Webhook Verification**: Cryptographic payload signature validation on every incoming GitHub event.
+- **Granular Role-Based Access Control**: Server-side permission guards on admin actions, task mutations, workflow canvas visibility, and workspace settings.
 - **Strict Privacy Direct Messaging**: DM payloads are strictly partitioned and query-filtered at the database level.
-- **Prompt Injection Defense**: Guardrails in agent system prompts preventing role overriding and malicious HTML/JS injection.
+- **Prompt Injection Defense**: Guardrails in agent system prompts preventing role overriding and malicious script injection.
 
 ---
 

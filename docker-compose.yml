@@ -1,4 +1,22 @@
 services:
+  postgres:
+    image: postgres:16-alpine
+    container_name: nexus-postgres-local
+    ports:
+      - "5432:5432"
+    environment:
+      POSTGRES_USER: nexus
+      POSTGRES_PASSWORD: nexus_local
+      POSTGRES_DB: nexusai
+    volumes:
+      - postgres_data:/var/lib/postgresql/data
+    restart: unless-stopped
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U nexus -d nexusai"]
+      interval: 5s
+      timeout: 5s
+      retries: 10
+
   redis:
     image: redis:7-alpine
     container_name: nexus-redis
@@ -23,8 +41,13 @@ services:
       - ./backend/.env
     environment:
       - REDIS_URL=${REDIS_URL:-redis://redis:6379/0}
+      # Override DATABASE_URL to point at the local postgres container
+      - DATABASE_URL=postgresql://nexus:nexus_local@postgres:5432/nexusai
     depends_on:
-      - redis
+      postgres:
+        condition: service_healthy
+      redis:
+        condition: service_healthy
     restart: unless-stopped
     healthcheck:
       test: ["CMD", "python", "-c", "import urllib.request; urllib.request.urlopen('http://localhost:8000/docs')"]
@@ -51,4 +74,5 @@ services:
     restart: unless-stopped
 
 volumes:
-  redis_data:
+  redis_data:
+  postgres_data:
