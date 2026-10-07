@@ -7,7 +7,7 @@ from slowapi.errors import RateLimitExceeded
 from .database import engine, Base
 from .routes import auth, workspaces, documents, chat, tasks, ai, github, flows
 import logging
-
+import os
 logger = logging.getLogger(__name__)
 
 # Create tables
@@ -22,10 +22,9 @@ app = FastAPI(title="Nexus AI API")
 limiter = Limiter(key_func=get_remote_address)
 app.state.limiter = limiter
 app.add_exception_handler(RateLimitExceeded, _rate_limit_exceeded_handler)
-
-app.add_middleware(
+FRONTED_URL=app.add_middleware(
     CORSMiddleware,
-    allow_origins=["http://localhost:8080", "http://localhost:3000", "https://nexus-avadhesh.vercel.app"],
+    allow_origins=[os.getenv("FRONTED_URL"),"http://localhost:8080", "http://localhost:3000", "https://nexus-avadhesh.vercel.app"],
     allow_credentials=True,
     allow_methods=["GET", "POST", "PATCH", "DELETE", "OPTIONS"],
     allow_headers=["Content-Type"],
@@ -61,6 +60,7 @@ async def global_exception_handler(request: Request, exc: Exception):
     )
 
 @app.get("/api/health")
+@limiter.exempt
 def health(response: Response):
     response.headers["Cache-Control"] = "no-store"
     response.headers["Pragma"] = "no-cache"
