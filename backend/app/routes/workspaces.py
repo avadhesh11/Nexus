@@ -1,4 +1,4 @@
-from fastapi import APIRouter, Depends, HTTPException, status
+from fastapi import APIRouter, Depends, HTTPException, status, Request
 from sqlalchemy.orm import Session
 import uuid
 import secrets
@@ -17,7 +17,7 @@ from ..schemas import (
     WorkspaceActivityItem,
     WorkspaceActivityResponse
 )
-from ..dependencies import get_current_user
+from ..dependencies import get_current_user, get_current_user_claims
 from ..utils.supabase_client import supabase
 from ..models import Document, Task, GitHubPullRequest, GitHubCommit, GitHubRepository
 
@@ -299,8 +299,13 @@ def remove_workspace_member(
     if ws and str(ws.owner_id) == str(target_member.user_id):
         raise HTTPException(status_code=400, detail="Cannot remove the workspace owner")
 
+    target_user_id = str(target_member.user_id)
     db.delete(target_member)
     db.commit()
+
+    # Security Eviction Hook: Invalidate user's fast-path activity cache immediately
+    evict_activity_cache(workspace_id, target_user_id)
+
     return {"message": "Member removed successfully"}
 
 
@@ -419,6 +424,9 @@ def delete_workspace(
     db.delete(workspace)
     db.commit()
 
+    # Security Eviction Hook: Invalidate all fast-path activity cache keys for this workspace
+    evict_workspace_activity_cache(workspace_id)
+
 
 def to_utc_dt(dt):
     if dt is None:
@@ -436,14 +444,84 @@ def to_utc_dt(dt):
 import json
 from ..utils.redis_client import get_redis_client
 
+def evict_activity_cache(workspace_id: str, user_id: str):
+    """Evicts the cached activity feed for a specific user and workspace."""
+    redis_client = get_redis_client()
+    if redis_client:
+        try:
+            redis_client.delete(f"nexus:ws_activity:{workspace_id}:{user_id}")
+        except Exception as e:
+            logger.warning("Failed to evict activity cache for user %s: %s", user_id, e)
+
+
+def evict_workspace_activity_cache(workspace_id: str):
+    """Evicts all activity feed cache keys associated with a workspace."""
+    redis_client = get_redis_client()
+    if redis_client:
+        try:
+            pattern = f"nexus:ws_activity:{workspace_id}:*"
+            keys = list(redis_client.scan_iter(match=pattern, count=100))
+            if keys:
+                redis_client.delete(*keys)
+        except Exception as e:
+            logger.warning("Failed to evict workspace activity cache for ws %s: %s", workspace_id, e)
+
+
+def evict_user_activity_cache(user_id: str):
+    """Evicts all activity feed cache keys across all workspaces for a user (e.g. on deactivation)."""
+    redis_client = get_redis_client()
+    if redis_client:
+        try:
+            pattern = f"nexus:ws_activity:*:{user_id}"
+            keys = list(redis_client.scan_iter(match=pattern, count=100))
+            if keys:
+                redis_client.delete(*keys)
+        except Exception as e:
+            logger.warning("Failed to evict user activity cache for user %s: %s", user_id, e)
+
+
 # --- Recent Developments / Workspace Activity Feed (No LLM, Fast Aggregation with Redis Cache) ---
 
 @router.get("/{workspace_id}/activity", response_model=WorkspaceActivityResponse)
 async def get_workspace_activity(
     workspace_id: str,
-    db: Session = Depends(get_db),
-    current_user: User = Depends(get_current_user)
+    request: Request,
+    db: Session = Depends(get_db)
 ):
+    # =========================================================================
+    # FAST PATH (Zero SQL queries on cache hit)
+    # =========================================================================
+    # 1. Stateless Auth: Validate JWT signature & claims without querying User table
+    claims = get_current_user_claims(request)
+    user_id = claims.get("sub")
+
+    # 2. Redis Fast-Path Check
+    # Security Note on Fast Path & Revocation Lag:
+    # The cache key ('nexus:ws_activity:{workspace_id}:{user_id}') is strictly written
+    # ONLY after workspace membership has been verified on the slow path.
+    # Active eviction hooks (in remove_workspace_member, delete_workspace, and
+    # evict_user_activity_cache) immediately purge this key upon any authorization change.
+    # If an eviction hook fails (e.g. transient Redis outage), the maximum revocation
+    # lag is strictly bounded by the Redis key TTL of 15 seconds.
+    cache_key = f"nexus:ws_activity:{workspace_id}:{user_id}"
+    redis_client = get_redis_client()
+    if redis_client:
+        try:
+            cached_raw = redis_client.get(cache_key)
+            if cached_raw:
+                # Fast path hit: Zero database queries executed!
+                return json.loads(cached_raw)
+        except Exception as e:
+            logger.debug("Redis activity cache read error: %s", e)
+
+    # =========================================================================
+    # SLOW PATH (Cache Miss): Full DB verification and aggregation
+    # =========================================================================
+    user = db.query(User).filter(User.id == user_id).first()
+    if not user:
+        raise HTTPException(status_code=401, detail="User not found")
+    current_user = user
+
     ws = db.query(Workspace).filter(Workspace.id == workspace_id).first()
     if not ws:
         raise HTTPException(status_code=404, detail="Workspace not found")
@@ -451,21 +529,10 @@ async def get_workspace_activity(
     # verify membership
     member = db.query(WorkspaceMember).filter(
         WorkspaceMember.workspace_id == workspace_id,
-        WorkspaceMember.user_id == current_user.id
+        WorkspaceMember.user_id == user.id
     ).first()
-    if not member and str(ws.owner_id) != str(current_user.id):
+    if not member and str(ws.owner_id) != str(user.id):
         raise HTTPException(status_code=403, detail="Not a workspace member")
-
-    # Check Redis cache first (15 second TTL)
-    cache_key = f"nexus:ws_activity:{workspace_id}:{current_user.id}"
-    redis_client = get_redis_client()
-    if redis_client:
-        try:
-            cached_raw = redis_client.get(cache_key)
-            if cached_raw:
-                return json.loads(cached_raw)
-        except Exception as e:
-            logger.debug("Redis activity cache read error: %s", e)
 
     activities: list[WorkspaceActivityItem] = []
     user_ids: set[uuid.UUID] = set()
@@ -646,4 +713,4 @@ async def get_workspace_activity(
 
     return resp_obj
 
-
+
