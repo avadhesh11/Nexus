@@ -12,3 +12,11 @@ __pycache__/
 # Verification & QA artifacts
 verification/
 verification*.zip
+
+# Test & Coverage artifacts
+.coverage
+.coverage.*
+coverage/
+*.coverage
+.pytest_cache/
+.ruff_cache/

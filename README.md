@@ -2,6 +2,7 @@
 
 > A unified collaborative workspace connecting project documentation, task tracking, visual workflow diagrams, and GitHub repository activity with a context-aware AI assistant.
 
+[![CI](https://github.com/avadhesh11/Nexus/actions/workflows/ci.yml/badge.svg)](https://github.com/avadhesh11/Nexus/actions/workflows/ci.yml)
 [![Live Demo](https://img.shields.io/badge/Demo-Live%20Preview-brightgreen)](https://nexus-avadhesh.vercel.app)
 [![License: MIT](https://img.shields.io/badge/License-MIT-blue.svg)](LICENSE)
 [![Next.js](https://img.shields.io/badge/Frontend-Next.js%2014-black)](https://nextjs.org/)
@@ -177,6 +178,62 @@ The following capabilities represent planned enhancements:
 - **Collaborative Canvas Editing**: Multi-user real-time cursor editing and graph synchronization for Nexus Flow diagrams using CRDTs.
 - **Asynchronous Ingestion Workers**: Offloading large document parsing and vector indexing workloads to a dedicated background worker queue (such as Celery or ARQ).
 - **Automated Test Coverage**: Building end-to-end and unit test suites using `pytest` and Playwright for CI/CD pipelines.
+
+---
+
+## Testing & CI/CD
+
+Nexus AI includes comprehensive automated testing suites and CI/CD pipelines managed via GitHub Actions.
+
+### Running Tests Locally
+
+#### Frontend Tests (Jest & React Testing Library)
+```bash
+cd frontend
+
+# Run test suite interactively
+npm test
+
+# Run tests in CI mode with code coverage
+npm run test:ci
+
+# Run linter and TypeScript typechecking
+npm run lint
+npx tsc --noEmit
+```
+
+#### Backend Tests (Pytest & Ruff)
+Tests run against an isolated in-memory SQLite database and mock all external services (Supabase, Redis, Gemini):
+```bash
+cd backend
+
+# Install dev dependencies
+pip install -r requirements-dev.txt
+
+# Run pytest with code coverage
+pytest --cov=app --cov-report=term-missing
+
+# Run Ruff linter
+ruff check .
+```
+
+### CI/CD Pipeline Architecture
+
+- **Continuous Integration (`.github/workflows/ci.yml`)**:
+  - Triggers automatically on push to `main` and all pull requests.
+  - Concurrency control cancels obsolete runs on new commits.
+  - **Frontend Job**: Node.js 20, dependency cache (`npm ci`), ESLint, TypeScript typecheck (`tsc --noEmit`), Jest unit/component test suite with coverage, and production Next.js build.
+  - **Backend Job**: Python 3.11, pip cache, Ruff linting, and Pytest suite with code coverage and XML artifact reporting.
+  - **Docker Job**: Verifies that both frontend and backend production Docker images build successfully.
+- **Continuous Deployment (`.github/workflows/cd.yml`)**:
+  - Triggers upon successful CI completion on `main` (or manual `workflow_dispatch`).
+  - Builds and publishes tagged multi-stage Docker images to GitHub Container Registry:
+    - `ghcr.io/avadhesh11/nexus-backend:latest` and `:sha-<commit>`
+    - `ghcr.io/avadhesh11/nexus-frontend:latest` and `:sha-<commit>`
+  - *Frontend Hosting*: Automatically deployed to Vercel on push to `main`.
+  - *Backend Hosting*: Extensible CD step ready for cloud infrastructure integration.
+- **Dependency Automation (`.github/dependabot.yml`)**:
+  - Weekly automated PRs for `npm`, `pip`, `docker`, and `github-actions`.
 
 ---
 
