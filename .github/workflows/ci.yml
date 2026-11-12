@@ -86,7 +86,7 @@ jobs:
 
       - name: Run pytest test suite
         env:
-          DATABASE_URL: sqlite:///:memory:
+          DATABASE_URL:"sqlite:///:memory:"
           JWT_SECRET: dummy-ci-secret-key-0123456789abcdef
           JWT_ALGORITHM: HS256
           SUPABASE_URL: https://dummy.supabase.co
