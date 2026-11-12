@@ -86,13 +86,13 @@ jobs:
 
       - name: Run pytest test suite
         env:
-          DATABASE_URL:"sqlite:///:memory:"
-          JWT_SECRET: dummy-ci-secret-key-0123456789abcdef
-          JWT_ALGORITHM: HS256
-          SUPABASE_URL: https://dummy.supabase.co
-          SUPABASE_SERVICE_KEY: dummy-supabase-key
-          REDIS_URL: redis://localhost:6379/0
-          GEMINI_API_KEY: dummy-gemini-key
+          DATABASE_URL: "sqlite:///:memory:"
+          JWT_SECRET: "dummy-ci-secret-key-0123456789abcdef"
+          JWT_ALGORITHM: "HS256"
+          SUPABASE_URL: "https://dummy.supabase.co"
+          SUPABASE_SERVICE_KEY: "dummy-supabase-key"
+          REDIS_URL: "redis://localhost:6379/0"
+          GEMINI_API_KEY: "dummy-gemini-key"
         run: pytest --cov=app --cov-report=xml --cov-report=term-missing
 
       - name: Upload backend test coverage
