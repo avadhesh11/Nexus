@@ -36,7 +36,7 @@ jobs:
       # Extract metadata (tags, labels) for Backend image
       - name: Extract Backend Docker metadata
         id: meta-backend
-        uses: docker/metadata-action@v5
+        uses: docker/metadata-action@v6
         with:
           images: ghcr.io/${{ github.repository_owner }}/nexus-backend
           tags: |
@@ -55,7 +55,7 @@ jobs:
       # Extract metadata (tags, labels) for Frontend image
       - name: Extract Frontend Docker metadata
         id: meta-frontend
-        uses: docker/metadata-action@v5
+        uses: docker/metadata-action@v6
         with:
           images: ghcr.io/${{ github.repository_owner }}/nexus-frontend
           tags: |
